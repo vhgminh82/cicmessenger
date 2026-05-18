@@ -1,8 +1,13 @@
 using System;
+using System.Linq;
+using System.Net;
+using System.Net.NetworkInformation;
+using System.Net.Sockets;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Interactivity;
 using Squiggle.Client;
+using Squiggle.Core.Presence;
 using Squiggle.UI.Controls;
 using Squiggle.UI.Services;
 using Squiggle.UI.ViewModel;
@@ -32,6 +37,14 @@ public partial class MainWindow : Window
         DataContext = _viewModel;
 
         signInControl.LoginRequested += SignInControl_LoginRequested;
+
+        // Wire up incoming chat sessions
+        chatClient.ChatStarted += ChatClient_ChatStarted;
+
+        // Pre-populate sign-in form with saved settings
+        var settingsService = App.Services.GetRequiredService<SettingsService>();
+        var settings = settingsService.Load();
+        signInControl.SetDefaults(settings.PersonalSettings.DisplayName, settings.PersonalSettings.GroupName);
 
         InitializeTrayIcon();
         InitializeNotifications();
@@ -80,14 +93,71 @@ public partial class MainWindow : Window
     private async void SignInControl_LoginRequested(object? sender, LoginEventArgs e)
     {
         var chatClient = App.Services.GetRequiredService<IChatClient>();
+        var dialogService = App.Services.GetRequiredService<IDialogService>();
+        var settingsService = App.Services.GetRequiredService<SettingsService>();
+
         try
         {
-            await System.Threading.Tasks.Task.CompletedTask;
+            var settings = settingsService.Load();
+            var connSettings = settings.ConnectionSettings;
+
+            var localIP = GetLocalIPAddress();
+            if (localIP == null)
+            {
+                await dialogService.ShowMessageBoxAsync("Error",
+                    "Could not detect a local network address. Please check your network connection.");
+                return;
+            }
+
+            var chatEndPoint = new IPEndPoint(localIP, connSettings.ChatPort);
+            var multicastAddress = IPAddress.Parse(connSettings.PresenceAddress);
+            var multicastEndPoint = new IPEndPoint(multicastAddress, connSettings.PresencePort);
+            var multicastReceiveEndPoint = new IPEndPoint(IPAddress.Any, connSettings.PresencePort);
+            var presenceEndPoint = new IPEndPoint(localIP, connSettings.PresencePort + 1);
+
+            var properties = new BuddyProperties();
+            properties.GroupName = e.GroupName;
+            properties.MachineName = Environment.MachineName;
+
+            var loginOptions = new LoginOptions
+            {
+                DisplayName = e.DisplayName,
+                ChatEndPoint = chatEndPoint,
+                MulticastEndPoint = multicastEndPoint,
+                MulticastReceiveEndPoint = multicastReceiveEndPoint,
+                PresenceServiceEndPoint = presenceEndPoint,
+                KeepAliveTime = TimeSpan.FromMilliseconds(connSettings.KeepAliveTime),
+                UserProperties = properties
+            };
+
+            chatClient.Login(loginOptions);
+
+            // Save display name for next time
+            settings.PersonalSettings.DisplayName = e.DisplayName;
+            settings.PersonalSettings.GroupName = e.GroupName;
+            settingsService.Save(settings);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            var dialogService = App.Services.GetRequiredService<IDialogService>();
-            await dialogService.ShowMessageBoxAsync("Error", "Failed to sign in. Please try again.");
+            await dialogService.ShowMessageBoxAsync("Error", $"Failed to sign in: {ex.Message}");
+        }
+    }
+
+    private static IPAddress? GetLocalIPAddress()
+    {
+        try
+        {
+            return NetworkInterface.GetAllNetworkInterfaces()
+                .Where(ni => ni.OperationalStatus == OperationalStatus.Up
+                          && ni.NetworkInterfaceType != NetworkInterfaceType.Loopback)
+                .SelectMany(ni => ni.GetIPProperties().UnicastAddresses)
+                .Where(addr => addr.Address.AddressFamily == AddressFamily.InterNetwork)
+                .Select(addr => addr.Address)
+                .FirstOrDefault();
+        }
+        catch
+        {
+            return null;
         }
     }
 
@@ -119,5 +189,19 @@ public partial class MainWindow : Window
     private void AboutMenu_Click(object? sender, RoutedEventArgs e)
     {
         // About dialog - will be implemented later
+    }
+
+    private void ChatClient_ChatStarted(object? sender, ChatStartedEventArgs e)
+    {
+        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        {
+            var buddy = e.Buddies.FirstOrDefault();
+            if (buddy != null)
+            {
+                var chatWindow = new Windows.ChatWindow(buddy, e.Chat);
+                chatWindow.Show();
+                chatWindow.Activate();
+            }
+        });
     }
 }

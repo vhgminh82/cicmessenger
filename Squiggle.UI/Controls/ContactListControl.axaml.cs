@@ -1,6 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Microsoft.Extensions.DependencyInjection;
 using Squiggle.Client;
 using Squiggle.UI.Windows;
 
@@ -31,7 +32,9 @@ public partial class ContactListControl : UserControl
 
     private void OpenChatWindow(IBuddy buddy)
     {
-        var chatWindow = new ChatWindow(buddy);
+        var chatClient = App.Services.GetRequiredService<IChatClient>();
+        var chat = chatClient.StartChat(buddy);
+        var chatWindow = new ChatWindow(buddy, chat);
         chatWindow.Show();
     }
 

@@ -14,7 +14,8 @@ public partial class SettingsWindow : Window
     public SettingsWindow()
     {
         InitializeComponent();
-        _viewModel = new SettingsViewModel();
+        var settingsService = App.Services.GetRequiredService<SettingsService>();
+        _viewModel = settingsService.Load();
         DataContext = _viewModel;
     }
 
@@ -26,6 +27,9 @@ public partial class SettingsWindow : Window
 
     private void OkButton_Click(object? sender, RoutedEventArgs e)
     {
+        var settingsService = App.Services.GetRequiredService<SettingsService>();
+        settingsService.Save(_viewModel);
+
         var themeService = App.Services.GetRequiredService<ThemeService>();
         themeService.ApplyTheme(_viewModel.GeneralSettings.ThemeMode);
         Close(true);

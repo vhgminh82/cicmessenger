@@ -47,9 +47,9 @@ namespace Squiggle.Core.Chat
         public void Start()
         {
             chatHost = new ChatHost(localEndPoint.Address, loggerFactory.CreateLogger<ChatHost>());
-            chatHost.Start();
             chatHost.MessageReceived += chatHost_MessageReceived;
             chatSessions = new ChatSessionCollection();
+            chatHost.Start();
         }
 
         public void Stop()

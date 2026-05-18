@@ -59,14 +59,15 @@ public partial class App : Application
 
         services.AddLogging(builder => builder.AddSerilog(dispose: true));
 
+        var dbPath = Path.Combine(appLocation, "squiggle_history.db");
+        var historyManager = new HistoryManager($"Data Source={dbPath}");
+        services.AddSingleton(historyManager);
+
         services.AddSingleton<IChatClient>(provider =>
         {
             var loggerFactory = provider.GetRequiredService<ILoggerFactory>();
-            return new ChatClient(Guid.NewGuid().ToString(), null, loggerFactory);
+            return new ChatClient(Guid.NewGuid().ToString(), historyManager, loggerFactory);
         });
-
-        var dbPath = Path.Combine(appLocation, "squiggle_history.db");
-        services.AddSingleton(new HistoryManager($"Data Source={dbPath}"));
 
         // Plugins
         var pluginsPath = Path.Combine(appLocation, "Plugins");
@@ -76,6 +77,7 @@ public partial class App : Application
         services.AddSingleton(pluginLoader);
 
         // Platform services
+        services.AddSingleton<SettingsService>();
         services.AddSingleton<ThemeService>();
         services.AddSingleton<ITrayIconService, AvaloniaTrayIconService>();
         services.AddSingleton<INotificationService, AvaloniaNotificationService>();

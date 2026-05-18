@@ -19,6 +19,14 @@ public partial class SignInControl : UserControl
         InitializeComponent();
     }
 
+    public void SetDefaults(string displayName, string groupName)
+    {
+        if (!string.IsNullOrEmpty(displayName))
+            txtDisplayName.Text = displayName;
+        if (!string.IsNullOrEmpty(groupName))
+            txtGroupName.Text = groupName;
+    }
+
     private void SignIn_Click(object? sender, RoutedEventArgs e)
     {
         var displayName = txtDisplayName.Text?.Trim() ?? "";
