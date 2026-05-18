@@ -1,11 +1,15 @@
 using System;
 using System.Collections.ObjectModel;
+using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
+using Avalonia.Platform.Storage;
+using Microsoft.Extensions.DependencyInjection;
 using Squiggle.Client;
+using Squiggle.UI.Services;
 
 namespace Squiggle.UI.Windows;
 
@@ -86,6 +90,15 @@ public partial class ChatWindow : Window
             });
             ScrollToBottom();
             typingIndicator.IsVisible = false;
+
+            // Show notification if window is not active
+            if (!IsActive)
+            {
+                var notificationService = App.Services.GetService<INotificationService>();
+                notificationService?.ShowMessageNotification(
+                    e.Sender.DisplayName,
+                    e.Message.Length > 50 ? e.Message[..50] + "..." : e.Message);
+            }
         });
     }
 
@@ -177,29 +190,80 @@ public partial class ChatWindow : Window
         messageScroller.Offset = new Vector(0, messageScroller.Extent.Height);
     }
 
-    private void SendFile_Click(object? sender, RoutedEventArgs e)
+    private async void SendFile_Click(object? sender, RoutedEventArgs e)
     {
-        // File transfer will be connected later
+        var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = "Send File",
+            AllowMultiple = false
+        });
+
+        if (files.Count > 0)
+        {
+            var filePath = files[0].Path.LocalPath;
+            var fileName = System.IO.Path.GetFileName(filePath);
+            AddSystemMessage($"File transfer not yet supported: {fileName}");
+        }
     }
 
-    private void Emoticon_Click(object? sender, RoutedEventArgs e)
+    private async void Emoticon_Click(object? sender, RoutedEventArgs e)
     {
-        // Emoticon picker will be added later
+        var picker = new EmoticonPicker();
+        var result = await picker.ShowDialog<string?>(this);
+        if (!string.IsNullOrEmpty(result))
+        {
+            var currentText = txtMessage.Text ?? "";
+            var caretIndex = txtMessage.CaretIndex;
+            txtMessage.Text = currentText.Insert(caretIndex, result);
+            txtMessage.CaretIndex = caretIndex + result.Length;
+            txtMessage.Focus();
+        }
     }
 
-    private void Save_Click(object? sender, RoutedEventArgs e)
+    private async void Save_Click(object? sender, RoutedEventArgs e)
     {
-        // Save conversation will be implemented later
+        var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+        {
+            Title = "Save Conversation",
+            DefaultExtension = "txt",
+            SuggestedFileName = $"Chat-{_buddy.DisplayName}-{DateTime.Now:yyyy-MM-dd}",
+            FileTypeChoices = new[]
+            {
+                new FilePickerFileType("Text Files") { Patterns = new[] { "*.txt" } }
+            }
+        });
+
+        if (file != null)
+        {
+            var lines = _messages.Select(m =>
+                string.IsNullOrEmpty(m.SenderName)
+                    ? $"[{m.Timestamp}] {m.Text}"
+                    : $"[{m.Timestamp}] {m.SenderName}: {m.Text}");
+            await System.IO.File.WriteAllLinesAsync(file.Path.LocalPath, lines);
+        }
     }
 
-    private void Copy_Click(object? sender, RoutedEventArgs e)
+    private async void Copy_Click(object? sender, RoutedEventArgs e)
     {
-        // Copy will be implemented later
+        var clipboard = App.Services.GetRequiredService<IClipboardService>();
+        var text = string.Join(Environment.NewLine,
+            _messages.Select(m =>
+                string.IsNullOrEmpty(m.SenderName)
+                    ? $"[{m.Timestamp}] {m.Text}"
+                    : $"[{m.Timestamp}] {m.SenderName}: {m.Text}"));
+        await clipboard.CopyTextAsync(text);
     }
 
-    private void SelectAll_Click(object? sender, RoutedEventArgs e)
+    private async void SelectAll_Click(object? sender, RoutedEventArgs e)
     {
-        // Select all will be implemented later
+        // Copy all messages to clipboard (equivalent of select all + copy in a chat context)
+        var clipboard = App.Services.GetRequiredService<IClipboardService>();
+        var text = string.Join(Environment.NewLine,
+            _messages.Select(m =>
+                string.IsNullOrEmpty(m.SenderName)
+                    ? $"[{m.Timestamp}] {m.Text}"
+                    : $"[{m.Timestamp}] {m.SenderName}: {m.Text}"));
+        await clipboard.CopyTextAsync(text);
     }
 
     private void CloseMenu_Click(object? sender, RoutedEventArgs e)

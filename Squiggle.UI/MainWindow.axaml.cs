@@ -38,8 +38,9 @@ public partial class MainWindow : Window
 
         signInControl.LoginRequested += SignInControl_LoginRequested;
 
-        // Wire up incoming chat sessions
+        // Wire up incoming chat sessions and buddy notifications
         chatClient.ChatStarted += ChatClient_ChatStarted;
+        chatClient.BuddyOnline += ChatClient_BuddyOnline;
 
         // Pre-populate sign-in form with saved settings
         var settingsService = App.Services.GetRequiredService<SettingsService>();
@@ -63,6 +64,15 @@ public partial class MainWindow : Window
             {
                 _forceClose = true;
                 Close();
+            };
+            avaloniaTray.StatusSelected += (_, status) =>
+            {
+                var chatClient = App.Services.GetRequiredService<IChatClient>();
+                if (chatClient.IsLoggedIn)
+                {
+                    chatClient.CurrentUser.Status = status;
+                    avaloniaTray.SetStatusIcon(status);
+                }
             };
         }
     }
@@ -186,9 +196,22 @@ public partial class MainWindow : Window
         await viewer.ShowDialog(this);
     }
 
-    private void AboutMenu_Click(object? sender, RoutedEventArgs e)
+    private async void AboutMenu_Click(object? sender, RoutedEventArgs e)
     {
-        // About dialog - will be implemented later
+        var aboutWindow = new Windows.AboutWindow();
+        await aboutWindow.ShowDialog(this);
+    }
+
+    private void ChatClient_BuddyOnline(object? sender, BuddyOnlineEventArgs e)
+    {
+        if (e.Discovered)
+            return;
+
+        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        {
+            _notificationService?.ShowNotification("Buddy Online",
+                $"{e.Buddy.DisplayName} is online");
+        });
     }
 
     private void ChatClient_ChatStarted(object? sender, ChatStartedEventArgs e)
@@ -201,6 +224,13 @@ public partial class MainWindow : Window
                 var chatWindow = new Windows.ChatWindow(buddy, e.Chat);
                 chatWindow.Show();
                 chatWindow.Activate();
+
+                // Show notification if main window is not active
+                if (!IsActive)
+                {
+                    _notificationService?.ShowMessageNotification(
+                        buddy.DisplayName, "Started a conversation");
+                }
             }
         });
     }
