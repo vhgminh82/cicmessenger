@@ -2,16 +2,16 @@
 
 ## Build
 
-Squiggle targets **.NET Framework 4.5.1** and uses classic MSBuild (not `dotnet` CLI). Build with Visual Studio or:
+Squiggle targets **.NET 9** and uses the `dotnet` CLI. Build with:
 
 ```powershell
-msbuild Squiggle.sln /p:Configuration=Release
+dotnet build Squiggle.sln
 ```
 
-Full release build (compiles, injects git hash, builds WiX installer, packages zip/msi):
+Run the UI project:
 
 ```powershell
-.\Build\Build.ps1
+dotnet run --project Squiggle.UI/Squiggle.UI.csproj
 ```
 
 There are no automated tests in this repository.
@@ -55,13 +55,14 @@ Squiggle.Utilities       (Cross-cutting helpers used by all layers)
 
 ### UI patterns
 
-- WPF with MVVM-style bindings. `MainWindow` uses a `ClientViewModel` and command pattern.
+- Avalonia UI 11 with Fluent theme and MVVM-style bindings. `MainWindow` uses a `ClientViewModel` and command pattern.
 - Plugin/extension system: `Squiggle.Core` defines `IExtension`, `IMessageFilter`, `IMessageParser` interfaces; `PluginLoader` in the UI discovers and loads plugins at startup.
-- Entry point is `Squiggle.UI/App.xaml.cs` which enforces single-instance via a bootstrapper.
+- Entry point is `Squiggle.UI/Program.cs` which enforces single-instance via a Mutex.
+- Settings are persisted as JSON in `%AppData%/Squiggle/settings.json` via `SettingsService`.
 
 ## Conventions
 
 - Events are initialized with empty delegates (`event ... = delegate { };`) to avoid null checks.
-- Diagnostic logging uses `System.Diagnostics.Trace.WriteLine` throughout.
-- Third-party DLLs are committed in `Libraries/` (NAudio, Speex, FluidKit) — not NuGet-managed.
-- Translations live in `Translations/` as `.resx` satellite assemblies.
+- Diagnostic logging uses Serilog (file sink in `logs/` folder).
+- Translations live in `Squiggle.UI/Styles/Translations.axaml` as merged resource dictionaries.
+- Settings persistence uses `System.Text.Json` to `%AppData%/Squiggle/settings.json`.
