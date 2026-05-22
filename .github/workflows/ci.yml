@@ -12,12 +12,8 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: [self-hosted, Windows]
-            is_windows: true
           - os: [self-hosted, Linux]
-            is_windows: false
           - os: macos-latest
-            is_windows: false
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -25,14 +21,6 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '9.0.x'
-
-      - name: Install .NET 9 x86 SDK for test host
-        if: matrix.is_windows
-        shell: pwsh
-        run: |
-          Invoke-WebRequest -Uri 'https://dot.net/v1/dotnet-install.ps1' -OutFile dotnet-install.ps1
-          ./dotnet-install.ps1 -Channel 9.0 -Architecture x86 -InstallDir 'C:\Program Files (x86)\dotnet'
-          echo "DOTNET_ROOT_X86=C:\Program Files (x86)\dotnet" >> $env:GITHUB_ENV
 
       - name: Cache NuGet packages
         uses: actions/cache@v4
@@ -42,30 +30,19 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-nuget-
 
-      - name: Restore (Full solution - Windows)
-        if: matrix.is_windows
+      - name: Restore
         run: dotnet restore
 
-      - name: Restore (Cross-platform projects)
-        if: '!matrix.is_windows'
-        run: dotnet restore Squiggle.UI/Squiggle.UI.csproj
-
-      - name: Build (Full solution - Windows)
-        if: matrix.is_windows
+      - name: Build
         run: dotnet build --no-restore --configuration Release
 
-      - name: Build (Cross-platform projects)
-        if: '!matrix.is_windows'
-        run: dotnet build Squiggle.UI/Squiggle.UI.csproj --no-restore --configuration Release
-
       - name: Test
-        if: matrix.is_windows
         run: dotnet test --no-build --configuration Release --verbosity normal --logger "trx;LogFileName=test-results.trx"
 
       - name: Upload test results
-        if: always() && matrix.is_windows
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-results
+          name: test-results-${{ runner.os }}
           path: '**/*.trx'
           retention-days: 30
