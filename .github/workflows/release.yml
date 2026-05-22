@@ -12,7 +12,7 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: windows-latest
+          - os: self-hosted
             rid: win-x64
             artifact: Squiggle-win-x64
           - os: ubuntu-latest
