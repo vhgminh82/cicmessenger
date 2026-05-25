@@ -1,4 +1,12 @@
-# Squiggle
+# Squiggle — Development Conventions
+
+## Overview
+Peer-to-peer LAN instant messenger. No central server — peers discover each other via multicast and communicate directly.
+
+## Environment
+- **.NET 9 SDK** required (no `global.json` — uses installed SDK)
+- Primary platform: **Windows** (auto-start service uses Windows registry)
+- Cross-platform via Avalonia, but some features are Windows-only
 
 ## Build
 
@@ -59,6 +67,32 @@ Squiggle.Utilities       (Cross-cutting helpers used by all layers)
 - Plugin/extension system: `Squiggle.Core` defines `IExtension`, `IMessageFilter`, `IMessageParser` interfaces; `PluginLoader` in the UI discovers and loads plugins at startup.
 - Entry point is `Squiggle.UI/Program.cs` which enforces single-instance via a Mutex.
 - Settings are persisted as JSON in `%AppData%/Squiggle/settings.json` via `SettingsService`.
+
+### Migration status
+
+- **Squiggle.UI**: Fully migrated to Avalonia 11
+- **Squiggle.Translate**: Still uses WPF (`<UseWPF>true</UseWPF>`)
+- All other projects are framework-agnostic (.NET class libraries)
+
+## Key Files
+
+| File | Purpose |
+|------|---------|
+| `Squiggle.UI/Program.cs` | Entry point — single-instance mutex + Avalonia startup |
+| `Squiggle.UI/App.axaml.cs` | DI container setup, MainWindow creation, `/background` arg handling |
+| `Squiggle.UI/MainWindow.axaml.cs` | Main UI — viewmodel init, tray icon, notifications |
+| `Squiggle.Client/ChatClient.cs` | Facade — buddy list, login, chat events |
+| `Squiggle.Core/Presence/UdpMulticastService.cs` | Multicast peer discovery |
+| `Squiggle.Core/Chat/ChatHost.cs` | Incoming message deserialization + typed events |
+| `Squiggle.UI/Services/WindowsAutoStartService.cs` | Windows-only auto-start via registry |
+
+## Gotchas
+
+- **Single-instance enforcement**: `Program.cs` uses a `Mutex` — launching a second instance will exit silently
+- **WindowsAutoStartService registered unconditionally**: it's in DI regardless of OS, but decorated with `[SupportedOSPlatform("windows")]` — calling it on non-Windows will throw
+- **Multicast requires LAN**: peers won't discover each other across subnets without the Bridge exe
+- **No automated tests**: this repo has no test suite — validate changes by building and manual testing
+- **Squiggle.Translate still uses WPF**: don't try to build it on non-Windows or without Windows Desktop SDK
 
 ## Conventions
 
