@@ -25,6 +25,8 @@
 /Squiggle.Infrastructure/obj
 /Squiggle.Setup/obj
 /Squiggle.Setup/bin
+/Squiggle.Tests/bin
+/Squiggle.Tests/obj
 /Libraries/Plugins/NAudio.dll
 /Libraries/Plugins/Squiggle.FileTransfer.dll
 /Libraries/Plugins/Squiggle.VoiceChat.dll
