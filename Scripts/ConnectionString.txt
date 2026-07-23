@@ -1,1 +1,1 @@
-<add name="HistoryContext" connectionString="Server=.;Database=SquiggleHistory;Trusted_Connection=true;" providerName="System.Data.SqlClient" />
+<add name="HistoryContext" connectionString="Server=.;Database=CICMessengerHistory;Trusted_Connection=true;" providerName="System.Data.SqlClient" />

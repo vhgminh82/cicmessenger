@@ -1,4 +1,4 @@
-# Squiggle — Development Conventions
+# CICMessenger — Development Conventions
 
 ## Overview
 Peer-to-peer LAN instant messenger. No central server — peers discover each other via multicast and communicate directly.
@@ -10,49 +10,49 @@ Peer-to-peer LAN instant messenger. No central server — peers discover each ot
 
 ## Build
 
-Squiggle targets **.NET 9** and uses the `dotnet` CLI. Build with:
+CICMessenger targets **.NET 9** and uses the `dotnet` CLI. Build with:
 
 ```powershell
-dotnet build Squiggle.sln
+dotnet build CICMessenger.sln
 ```
 
 Run the UI project:
 
 ```powershell
-dotnet run --project Squiggle.UI/Squiggle.UI.csproj
+dotnet run --project CICMessenger.UI/CICMessenger.UI.csproj
 ```
 
 There are no automated tests in this repository.
 
 ## Architecture
 
-Squiggle is a **peer-to-peer LAN instant messenger** built with WPF. There is no central server — peers discover each other via multicast and communicate directly.
+CICMessenger is a **peer-to-peer LAN instant messenger** built with WPF. There is no central server — peers discover each other via multicast and communicate directly.
 
 ### Layer diagram
 
 ```
-Squiggle.UI          (WPF app — windows, viewmodels, plugin loader)
+CICMessenger.UI          (WPF app — windows, viewmodels, plugin loader)
     ↓
-Squiggle.Client      (Facade — ChatClient exposes buddy list, login, chat events)
+CICMessenger.Client      (Facade — ChatClient exposes buddy list, login, chat events)
     ↓
-Squiggle.Core        (Networking — presence discovery, chat transport, message serialization)
+CICMessenger.Core        (Networking — presence discovery, chat transport, message serialization)
     ↓
-Squiggle.Infrastructure  (Shared abstractions — async pipes, serialization helpers)
-Squiggle.Utilities       (Cross-cutting helpers used by all layers)
+CICMessenger.Infrastructure  (Shared abstractions — async pipes, serialization helpers)
+CICMessenger.Utilities       (Cross-cutting helpers used by all layers)
 ```
 
 ### Feature modules (plug into Client/UI)
 
 | Project | Purpose | Key dependency |
 |---|---|---|
-| `Squiggle.FileTransfer` | P2P file transfer | Squiggle.Client |
-| `Squiggle.VoiceChat` | Voice chat via NAudio + Speex | Squiggle.Client, NAudio |
-| `Squiggle.Screenshot` | Screen capture & send | Squiggle.FileTransfer |
-| `Squiggle.Translate` | Message translation | Squiggle.Client, Newtonsoft.Json |
-| `Squiggle.History` | Chat history persistence | EntityFramework 6, System.Data.SQLite |
-| `Squiggle.Multicast` | Multicast presence (standalone exe) | Squiggle.Core |
-| `Squiggle.Bridge` | Cross-subnet/WAN bridging (standalone exe) | Squiggle.Core, protobuf-net |
-| `Squiggle.Setup` | WiX MSI installer | WiX Toolset |
+| `CICMessenger.FileTransfer` | P2P file transfer | CICMessenger.Client |
+| `CICMessenger.VoiceChat` | Voice chat via NAudio + Speex | CICMessenger.Client, NAudio |
+| `CICMessenger.Screenshot` | Screen capture & send | CICMessenger.FileTransfer |
+| `CICMessenger.Translate` | Message translation | CICMessenger.Client, Newtonsoft.Json |
+| `CICMessenger.History` | Chat history persistence | EntityFramework 6, System.Data.SQLite |
+| `CICMessenger.Multicast` | Multicast presence (standalone exe) | CICMessenger.Core |
+| `CICMessenger.Bridge` | Cross-subnet/WAN bridging (standalone exe) | CICMessenger.Core, protobuf-net |
+| `CICMessenger.Setup` | WiX MSI installer | WiX Toolset |
 
 ### Networking
 
@@ -64,27 +64,27 @@ Squiggle.Utilities       (Cross-cutting helpers used by all layers)
 ### UI patterns
 
 - Avalonia UI 11 with Fluent theme and MVVM-style bindings. `MainWindow` uses a `ClientViewModel` and command pattern.
-- Plugin/extension system: `Squiggle.Core` defines `IExtension`, `IMessageFilter`, `IMessageParser` interfaces; `PluginLoader` in the UI discovers and loads plugins at startup.
-- Entry point is `Squiggle.UI/Program.cs` which enforces single-instance via a Mutex.
-- Settings are persisted as JSON in `%AppData%/Squiggle/settings.json` via `SettingsService`.
+- Plugin/extension system: `CICMessenger.Core` defines `IExtension`, `IMessageFilter`, `IMessageParser` interfaces; `PluginLoader` in the UI discovers and loads plugins at startup.
+- Entry point is `CICMessenger.UI/Program.cs` which enforces single-instance via a Mutex.
+- Settings are persisted as JSON in `%AppData%/CICMessenger/settings.json` via `SettingsService`.
 
 ### Migration status
 
-- **Squiggle.UI**: Fully migrated to Avalonia 11
-- **Squiggle.Translate**: Still uses WPF (`<UseWPF>true</UseWPF>`)
+- **CICMessenger.UI**: Fully migrated to Avalonia 11
+- **CICMessenger.Translate**: Still uses WPF (`<UseWPF>true</UseWPF>`)
 - All other projects are framework-agnostic (.NET class libraries)
 
 ## Key Files
 
 | File | Purpose |
 |------|---------|
-| `Squiggle.UI/Program.cs` | Entry point — single-instance mutex + Avalonia startup |
-| `Squiggle.UI/App.axaml.cs` | DI container setup, MainWindow creation, `/background` arg handling |
-| `Squiggle.UI/MainWindow.axaml.cs` | Main UI — viewmodel init, tray icon, notifications |
-| `Squiggle.Client/ChatClient.cs` | Facade — buddy list, login, chat events |
-| `Squiggle.Core/Presence/UdpMulticastService.cs` | Multicast peer discovery |
-| `Squiggle.Core/Chat/ChatHost.cs` | Incoming message deserialization + typed events |
-| `Squiggle.UI/Services/WindowsAutoStartService.cs` | Windows-only auto-start via registry |
+| `CICMessenger.UI/Program.cs` | Entry point — single-instance mutex + Avalonia startup |
+| `CICMessenger.UI/App.axaml.cs` | DI container setup, MainWindow creation, `/background` arg handling |
+| `CICMessenger.UI/MainWindow.axaml.cs` | Main UI — viewmodel init, tray icon, notifications |
+| `CICMessenger.Client/ChatClient.cs` | Facade — buddy list, login, chat events |
+| `CICMessenger.Core/Presence/UdpMulticastService.cs` | Multicast peer discovery |
+| `CICMessenger.Core/Chat/ChatHost.cs` | Incoming message deserialization + typed events |
+| `CICMessenger.UI/Services/WindowsAutoStartService.cs` | Windows-only auto-start via registry |
 
 ## Gotchas
 
@@ -92,11 +92,11 @@ Squiggle.Utilities       (Cross-cutting helpers used by all layers)
 - **WindowsAutoStartService registered unconditionally**: it's in DI regardless of OS, but decorated with `[SupportedOSPlatform("windows")]` — calling it on non-Windows will throw
 - **Multicast requires LAN**: peers won't discover each other across subnets without the Bridge exe
 - **No automated tests**: this repo has no test suite — validate changes by building and manual testing
-- **Squiggle.Translate still uses WPF**: don't try to build it on non-Windows or without Windows Desktop SDK
+- **CICMessenger.Translate still uses WPF**: don't try to build it on non-Windows or without Windows Desktop SDK
 
 ## Conventions
 
 - Events are initialized with empty delegates (`event ... = delegate { };`) to avoid null checks.
 - Diagnostic logging uses Serilog (file sink in `logs/` folder).
-- Translations live in `Squiggle.UI/Styles/Translations.axaml` as merged resource dictionaries.
-- Settings persistence uses `System.Text.Json` to `%AppData%/Squiggle/settings.json`.
+- Translations live in `CICMessenger.UI/Styles/Translations.axaml` as merged resource dictionaries.
+- Settings persistence uses `System.Text.Json` to `%AppData%/CICMessenger/settings.json`.

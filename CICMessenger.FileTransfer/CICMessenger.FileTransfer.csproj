@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>CICMessenger.FileTransfer</RootNamespace>
+    <IsTrimmable>true</IsTrimmable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\CICMessenger.Client\CICMessenger.Client.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\Shared\AssemblyInfo.Copyright.cs" Link="Properties\AssemblyInfo.Copyright.cs" />
+    <Compile Include="..\Shared\AssemblyInfo.Version.cs" Link="Properties\AssemblyInfo.Version.cs" />
+  </ItemGroup>
+</Project>

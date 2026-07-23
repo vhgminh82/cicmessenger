@@ -1,0 +1,46 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="using:CICMessenger.UI.Controls"
+        x:Class="CICMessenger.UI.MainWindow"
+        Icon="avares://CICMessenger/Assets/cic-logo.ico"
+        Title="{Binding Title}"
+        Width="320" Height="550"
+        WindowStartupLocation="CenterScreen">
+    <DockPanel>
+        <!-- Menu Bar -->
+        <DockPanel DockPanel.Dock="Top">
+            <TextBlock x:Name="versionLabel" DockPanel.Dock="Right"
+                       VerticalAlignment="Center" Margin="0,0,10,0"
+                       FontSize="11" Opacity="0.7" />
+            <Menu>
+                <MenuItem Header="{DynamicResource MainWindow_MainMenu_File}">
+                    <MenuItem x:Name="mnuSignOut" Header="{DynamicResource MainWindow_MainMenu_SignOut}"
+                              Click="SignOutMenu_Click" IsEnabled="{Binding IsLoggedIn}" />
+                    <Separator />
+                    <MenuItem Header="{DynamicResource MainWindow_MainMenu_Close}" Click="CloseMenu_Click" />
+                </MenuItem>
+                <MenuItem Header="{DynamicResource MainWindow_MainMenu_Actions}">
+                    <MenuItem Header="{DynamicResource MainWindow_SendBroadcastMessage}"
+                              IsEnabled="{Binding IsLoggedIn}" Click="BroadcastMenu_Click" />
+                    <MenuItem Header="{DynamicResource MainWindow_MainMenu_CreateRoom}"
+                              IsEnabled="{Binding IsLoggedIn}" Click="CreateRoomMenu_Click" />
+                </MenuItem>
+                <MenuItem Header="{DynamicResource MainWindow_MainMenu_Tools}">
+                    <MenuItem Header="{DynamicResource MainWindow_MainMenu_HistoryViewer}"
+                              IsEnabled="{Binding IsLoggedIn}" Click="HistoryMenu_Click" />
+                    <MenuItem Header="{DynamicResource MainWindow_MainMenu_Settings}" Click="SettingsMenu_Click" />
+                    <Separator />
+                    <MenuItem Header="{DynamicResource MainWindow_MainMenu_CheckUpdate}" Click="UpdateMenu_Click" />
+                </MenuItem>
+            </Menu>
+        </DockPanel>
+
+        <!-- Content Area: Sign-in or Contact List -->
+        <Panel>
+            <controls:SignInControl x:Name="signInControl"
+                                     IsVisible="{Binding !IsLoggedIn}" />
+            <controls:ContactListControl x:Name="contactListControl"
+                                          IsVisible="{Binding IsLoggedIn}" />
+        </Panel>
+    </DockPanel>
+</Window>

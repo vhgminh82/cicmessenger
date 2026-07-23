@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>CICMessenger.Client</RootNamespace>
+    <IsTrimmable>true</IsTrimmable>
+  </PropertyGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.*" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\CICMessenger.Core\CICMessenger.Core.csproj" />
+    <ProjectReference Include="..\CICMessenger.History\CICMessenger.History.csproj" />
+    <ProjectReference Include="..\CICMessenger.Infrastructure\CICMessenger.Infrastructure.csproj" />
+    <ProjectReference Include="..\CICMessenger.Utilities\CICMessenger.Utilities.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\Shared\AssemblyInfo.Copyright.cs" Link="Properties\AssemblyInfo.Copyright.cs" />
+    <Compile Include="..\Shared\AssemblyInfo.Version.cs" Link="Properties\AssemblyInfo.Version.cs" />
+  </ItemGroup>
+</Project>

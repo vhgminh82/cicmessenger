@@ -1,0 +1,17 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+
+namespace CICMessenger.Client
+{
+    public class ChatStartedEventArgs : EventArgs
+    {
+        public IBuddy? Buddy
+        {
+            get { return Buddies.FirstOrDefault(); }
+        }
+        public IEnumerable<IBuddy> Buddies { get; set; } = null!;
+        public IChat Chat { get; set; } = null!;
+    }
+}

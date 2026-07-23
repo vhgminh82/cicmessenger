@@ -1,6 +1,6 @@
-# Squiggle — LAN Messenger
+# CICMessenger — LAN Messenger
 
-Squiggle is a free, open-source **peer-to-peer LAN instant messenger**. There is no central server — peers discover each other via multicast and communicate directly on the local network.
+CICMessenger is a free, open-source **peer-to-peer LAN instant messenger**. There is no central server — peers discover each other via multicast and communicate directly on the local network.
 
 ## Features
 
@@ -22,42 +22,42 @@ Squiggle is a free, open-source **peer-to-peer LAN instant messenger**. There is
 
 ## Build
 
-Squiggle uses the `dotnet` CLI to build:
+CICMessenger uses the `dotnet` CLI to build:
 
 ```bash
-dotnet build Squiggle.sln
+dotnet build CICMessenger.sln
 ```
 
 ## Run
 
 ```bash
-dotnet run --project Squiggle.UI
+dotnet run --project CICMessenger.UI
 ```
 
 ## Architecture
 
 ```
-Squiggle.UI           (Avalonia app — windows, views, plugin loader)
+CICMessenger.UI           (Avalonia app — windows, views, plugin loader)
     ↓
-Squiggle.Client       (Facade — ChatClient exposes buddy list, login, chat events)
+CICMessenger.Client       (Facade — ChatClient exposes buddy list, login, chat events)
     ↓
-Squiggle.Core         (Networking — presence discovery, chat transport, message serialization)
+CICMessenger.Core         (Networking — presence discovery, chat transport, message serialization)
     ↓
-Squiggle.Infrastructure  (Shared abstractions — async pipes, serialization helpers)
-Squiggle.Utilities       (Cross-cutting helpers used by all layers)
+CICMessenger.Infrastructure  (Shared abstractions — async pipes, serialization helpers)
+CICMessenger.Utilities       (Cross-cutting helpers used by all layers)
 ```
 
 ### Feature modules
 
 | Project | Purpose |
 |---|---|
-| `Squiggle.FileTransfer` | P2P file transfer |
-| `Squiggle.VoiceChat` | Voice chat via NAudio + Speex |
-| `Squiggle.Screenshot` | Screen capture & send |
-| `Squiggle.Translate` | Message translation |
-| `Squiggle.History` | Chat history persistence |
-| `Squiggle.Multicast` | Multicast presence (standalone exe) |
-| `Squiggle.Bridge` | Cross-subnet/WAN bridging (standalone exe) |
+| `CICMessenger.FileTransfer` | P2P file transfer |
+| `CICMessenger.VoiceChat` | Voice chat via NAudio + Speex |
+| `CICMessenger.Screenshot` | Screen capture & send |
+| `CICMessenger.Translate` | Message translation |
+| `CICMessenger.History` | Chat history persistence |
+| `CICMessenger.Multicast` | Multicast presence (standalone exe) |
+| `CICMessenger.Bridge` | Cross-subnet/WAN bridging (standalone exe) |
 
 ## Releases
 

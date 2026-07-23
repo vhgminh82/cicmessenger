@@ -1,0 +1,24 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="CICMessenger.UI.Windows.ScreenRegionPicker"
+        SystemDecorations="None"
+        ShowInTaskbar="False"
+        Topmost="True"
+        Background="Transparent"
+        CanResize="False">
+    <Canvas x:Name="rootCanvas" Background="Transparent" Cursor="Cross">
+        <!-- Frozen screenshot of the desktop -->
+        <Image x:Name="screenImage" Stretch="Fill" />
+        <!-- Dim layer so the selected region stands out -->
+        <Rectangle x:Name="dimLayer" Fill="#66000000" />
+        <!-- Selection rectangle -->
+        <Rectangle x:Name="selectionRect"
+                   Stroke="#E8501E" StrokeThickness="2"
+                   Fill="#22E8501E"
+                   IsVisible="False" />
+        <Border x:Name="hintBox" Background="#CC000000" CornerRadius="4" Padding="10,6">
+            <TextBlock Foreground="White" FontSize="13"
+                       Text="Kéo chuột để chọn vùng cần chụp · Enter: toàn màn hình · Esc: hủy" />
+        </Border>
+    </Canvas>
+</Window>

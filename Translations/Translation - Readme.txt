@@ -1,1 +1,1 @@
-Rename the file of your desired language to Translation.xaml and place it in Resources folder in Squiggle install directory (by overriting the existing file.)
+Rename the file of your desired language to Translation.xaml and place it in Resources folder in CICMessenger install directory (by overriting the existing file.)
