@@ -34,6 +34,12 @@ public class UpdateService
     public static Version CurrentVersion =>
         Assembly.GetExecutingAssembly().GetName().Version ?? new Version(0, 0, 0, 0);
 
+    /// <summary>
+    /// Version as shown to users, e.g. "0.11". Releases step the minor part by one, which
+    /// reads as +0.01 on this two-part number.
+    /// </summary>
+    public static string DisplayVersion => $"{CurrentVersion.Major}.{CurrentVersion.Minor}";
+
     public record UpdateInfo(Version Version, string TagName, string DownloadUrl);
 
     /// <summary>

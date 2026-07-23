@@ -46,6 +46,7 @@ Bạn có chắc chắn muốn đóng cửa sổ này không?</sys:String>
     <sys:String x:Key="MainWindow_MainMenu_CreateRoom">Tạo _phòng chat nhóm...</sys:String>
     <sys:String x:Key="MainWindow_MainMenu_CheckUpdate">Kiểm tra _cập nhật...</sys:String>
     <sys:String x:Key="Update_UpToDate">Bạn đang dùng phiên bản mới nhất.</sys:String>
+    <sys:String x:Key="Update_BadgeNew">Bản mới</sys:String>
     <sys:String x:Key="Update_NewVersionFound">Có phiên bản mới {0}. Tải về và cập nhật ngay?</sys:String>
     <sys:String x:Key="Update_Failed">Không thể kiểm tra cập nhật. Vui lòng kiểm tra kết nối mạng.</sys:String>
     <sys:String x:Key="Update_Downloading">Đang tải bản cập nhật...</sys:String>

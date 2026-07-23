@@ -64,9 +64,41 @@ public partial class MainWindow : Window
         InitializeTrayIcon();
         InitializeNotifications();
 
-        var version = Services.UpdateService.CurrentVersion;
-        versionLabel.Text = $"V{version.Major}.{version.Minor}";
+        versionLabel.Text = "V" + UpdateService.DisplayVersion;
+
+        // Check quietly in the background; the badge is the only sign until the user acts.
+        _ = CheckForUpdateBadgeAsync();
     }
+
+    private UpdateService.UpdateInfo? _pendingUpdate;
+
+    /// <summary>
+    /// Looks for a newer release without interrupting the user, and flags it next to the
+    /// version number so a new build is noticeable without opening any menu.
+    /// </summary>
+    private async System.Threading.Tasks.Task CheckForUpdateBadgeAsync()
+    {
+        try
+        {
+            var update = await new UpdateService().CheckForUpdateAsync();
+            if (update == null)
+                return;
+
+            _pendingUpdate = update;
+            updateBadgeText.Text = FindTranslation("Update_BadgeNew", "Bản mới") + " " + update.TagName;
+            updateBadge.IsVisible = true;
+            ToolTip.SetTip(versionButton, string.Format(
+                FindTranslation("Update_NewVersionFound", "Có phiên bản mới {0}. Bấm để cập nhật."),
+                update.TagName));
+        }
+        catch (Exception ex)
+        {
+            // A failed check must stay invisible — it is not something the user asked for
+            Serilog.Log.Debug(ex, "Background update check failed");
+        }
+    }
+
+    private void VersionLabel_Click(object? sender, RoutedEventArgs e) => UpdateMenu_Click(sender, e);
 
     private void InitializeTrayIcon()
     {
@@ -286,9 +318,13 @@ public partial class MainWindow : Window
 
             if (update == null)
             {
-                await ShowUpdateMessageAsync(string.Format(
-                    FindTranslation("Update_UpToDate", "You are on the latest version.") + " (v{0}.{1})",
-                    UpdateService.CurrentVersion.Major, UpdateService.CurrentVersion.Minor));
+                // Nothing newer after all — clear any badge left from the startup check
+                updateBadge.IsVisible = false;
+                _pendingUpdate = null;
+
+                await ShowUpdateMessageAsync(
+                    FindTranslation("Update_UpToDate", "You are on the latest version.")
+                    + $" (V{UpdateService.DisplayVersion})");
                 return;
             }
 

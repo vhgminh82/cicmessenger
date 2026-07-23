@@ -9,9 +9,23 @@
     <DockPanel>
         <!-- Menu Bar -->
         <DockPanel DockPanel.Dock="Top">
-            <TextBlock x:Name="versionLabel" DockPanel.Dock="Right"
-                       VerticalAlignment="Center" Margin="0,0,10,0"
-                       FontSize="11" Opacity="0.7" />
+            <Button x:Name="versionButton" DockPanel.Dock="Right"
+                    Background="Transparent" BorderThickness="0"
+                    Padding="6,2" Margin="0,0,6,0"
+                    VerticalAlignment="Center"
+                    Click="VersionLabel_Click">
+                <StackPanel Orientation="Horizontal" Spacing="5">
+                    <TextBlock x:Name="versionLabel"
+                               VerticalAlignment="Center"
+                               FontSize="11" Opacity="0.7" />
+                    <Border x:Name="updateBadge" IsVisible="False"
+                            Background="#E8501E" CornerRadius="8"
+                            Padding="6,1" VerticalAlignment="Center">
+                        <TextBlock x:Name="updateBadgeText" Foreground="White"
+                                   FontSize="10" FontWeight="SemiBold" />
+                    </Border>
+                </StackPanel>
+            </Button>
             <Menu>
                 <MenuItem Header="{DynamicResource MainWindow_MainMenu_File}">
                     <MenuItem x:Name="mnuSignOut" Header="{DynamicResource MainWindow_MainMenu_SignOut}"

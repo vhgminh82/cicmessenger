@@ -13,12 +13,12 @@ namespace CICMessenger.Core.Presence.Transport.Multicast.Mdns
 {
     /// <summary>
     /// mDNS/DNS-SD based peer discovery implementing IMulticastService.
-    /// Advertises this peer as a _cicmessenger._tcp.local service and discovers
+    /// Advertises this peer as a _squiggle._tcp.local service and discovers
     /// other peers via DNS-SD service browsing.
     /// </summary>
     class MdnsMulticastService : IMulticastService, IDisposable
     {
-        static readonly DomainName ServiceType = new DomainName("_cicmessenger._tcp");
+        static readonly DomainName ServiceType = new DomainName("_squiggle._tcp");
 
         readonly IPEndPoint localEndPoint;
 
@@ -157,7 +157,7 @@ namespace CICMessenger.Core.Presence.Transport.Multicast.Mdns
             advertisedPresIp = sender.Address.Address.ToString();
             advertisedPresPort = sender.Address.Port;
 
-            var instanceName = $"cicmessenger-{sender.ClientID}";
+            var instanceName = $"squiggle-{sender.ClientID}";
             serviceProfile = new ServiceProfile(instanceName, ServiceType, (ushort)localEndPoint.Port);
 
             serviceProfile.AddProperty("id", advertisedClientId ?? "");
@@ -207,7 +207,7 @@ namespace CICMessenger.Core.Presence.Transport.Multicast.Mdns
             if (!started) return;
 
             var serviceName = e.ServiceInstanceName.ToString();
-            if (!serviceName.Contains("_cicmessenger._tcp")) return;
+            if (!serviceName.Contains("_squiggle._tcp")) return;
 
             // Extract TXT records from the discovery message
             var txtRecords = e.Message.Answers
@@ -216,7 +216,7 @@ namespace CICMessenger.Core.Presence.Transport.Multicast.Mdns
 
             foreach (var txt in txtRecords)
             {
-                if (txt.Name.ToString().Contains("_cicmessenger._tcp"))
+                if (txt.Name.ToString().Contains("_squiggle._tcp"))
                     ProcessTxtRecord(txt, serviceName);
             }
 
@@ -235,7 +235,7 @@ namespace CICMessenger.Core.Presence.Transport.Multicast.Mdns
             if (!started) return;
 
             var serviceName = e.ServiceInstanceName.ToString();
-            if (!serviceName.Contains("_cicmessenger._tcp")) return;
+            if (!serviceName.Contains("_squiggle._tcp")) return;
 
             HandleServiceGoodbye(serviceName);
         }
