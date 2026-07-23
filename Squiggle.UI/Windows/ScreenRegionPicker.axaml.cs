@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -9,7 +10,7 @@ namespace Squiggle.UI.Windows;
 
 /// <summary>
 /// Full-screen overlay showing a frozen shot of the desktop; the user drags out the region
-/// they want. Returns the cropped bitmap, or null when cancelled.
+/// they want. Use <see cref="CaptureRegionAsync"/> rather than constructing it directly.
 /// </summary>
 public partial class ScreenRegionPicker : Window
 {
@@ -17,36 +18,67 @@ public partial class ScreenRegionPicker : Window
     private Point _dragStart;
     private bool _dragging;
 
+    /// <summary>Selected image, or null when the user cancelled.</summary>
+    public WriteableBitmap? Result { get; private set; }
+
     public ScreenRegionPicker()
     {
         InitializeComponent();
     }
 
-    public static ScreenRegionPicker? TryCreate()
+    /// <summary>
+    /// Hides <paramref name="owner"/>, grabs the desktop, lets the user pick a region and
+    /// returns the cropped image (null when cancelled or unsupported). Never throws — a
+    /// failure here must not take the app down.
+    /// </summary>
+    public static async Task<WriteableBitmap?> CaptureRegionAsync(Window owner)
     {
         if (!OperatingSystem.IsWindows())
             return null;
 
-        WriteableBitmap shot;
+        bool wasVisible = owner.IsVisible;
+
         try
         {
-            shot = ScreenCapture.CaptureVirtualScreen();
+            // Get the chat window out of the shot, and give the compositor a moment to
+            // actually paint it away before grabbing the screen.
+            if (wasVisible)
+                owner.Hide();
+            await Task.Delay(220);
+
+            var shot = ScreenCapture.CaptureVirtualScreen();
+            var bounds = ScreenCapture.VirtualScreenBounds;
+
+            var picker = new ScreenRegionPicker
+            {
+                _screenshot = shot,
+                Position = new PixelPoint(bounds.X, bounds.Y)
+            };
+            picker.screenImage.Source = shot;
+            picker.Opened += (_, _) => picker.LayoutForScreen(bounds);
+
+            // Shown non-modally on purpose: ShowDialog requires a *visible* owner, and we
+            // just hid it. Topmost + full-screen makes it behave modally anyway.
+            var closed = new TaskCompletionSource<WriteableBitmap?>();
+            picker.Closed += (_, _) => closed.TrySetResult(picker.Result);
+            picker.Show();
+            picker.Activate();
+            picker.Focus();
+
+            return await closed.Task;
         }
         catch
         {
             return null;
         }
-
-        var bounds = ScreenCapture.VirtualScreenBounds;
-        var picker = new ScreenRegionPicker
+        finally
         {
-            _screenshot = shot,
-            Position = new PixelPoint(bounds.X, bounds.Y),
-        };
-
-        picker.screenImage.Source = shot;
-        picker.Opened += (_, _) => picker.LayoutForScreen(bounds);
-        return picker;
+            if (wasVisible)
+            {
+                owner.Show();
+                owner.Activate();
+            }
+        }
     }
 
     private void LayoutForScreen(PixelRect bounds)
@@ -70,14 +102,16 @@ public partial class ScreenRegionPicker : Window
         if (e.Key == Key.Escape)
         {
             e.Handled = true;
-            Close(null);
+            Result = null;
+            Close();
             return;
         }
 
         if (e.Key == Key.Enter && _screenshot != null)
         {
             e.Handled = true;
-            Close(_screenshot);
+            Result = _screenshot;
+            Close();
             return;
         }
 
@@ -120,18 +154,21 @@ public partial class ScreenRegionPicker : Window
         // A click without a drag reads as "cancel" rather than a 0x0 crop
         if (w < 4 || h < 4)
         {
-            Close(null);
+            Result = null;
+            Close();
             return;
         }
 
         try
         {
-            Close(ScreenCapture.Crop(_screenshot, new PixelRect(x, y, w, h)));
+            Result = ScreenCapture.Crop(_screenshot, new PixelRect(x, y, w, h));
         }
         catch
         {
-            Close(null);
+            Result = null;
         }
+
+        Close();
     }
 
     private void UpdateSelection(Point current)

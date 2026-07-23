@@ -577,37 +577,12 @@ public partial class ChatWindow : Window
     /// </summary>
     private async void Screenshot_Click(object? sender, RoutedEventArgs e)
     {
-        var picker = ScreenRegionPicker.TryCreate();
-        if (picker == null)
-        {
-            AddSystemMessage(FindTranslation("ChatWindow_ScreenshotFailed", "Không chụp được màn hình."));
-            return;
-        }
-
-        // Get our own window out of the shot before the overlay appears
-        var wasVisible = IsVisible;
-        Hide();
-        await System.Threading.Tasks.Task.Delay(180);
-
-        Avalonia.Media.Imaging.WriteableBitmap? shot;
         try
         {
-            shot = await picker.ShowDialog<Avalonia.Media.Imaging.WriteableBitmap?>(this);
-        }
-        finally
-        {
-            if (wasVisible)
-            {
-                Show();
-                Activate();
-            }
-        }
+            var shot = await ScreenRegionPicker.CaptureRegionAsync(this);
+            if (shot == null)
+                return;
 
-        if (shot == null)
-            return;
-
-        try
-        {
             var path = System.IO.Path.Combine(System.IO.Path.GetTempPath(),
                 $"CICMessenger-screenshot-{DateTime.Now:yyyyMMdd-HHmmss}.png");
             shot.Save(path);
@@ -615,6 +590,7 @@ public partial class ChatWindow : Window
         }
         catch (Exception ex)
         {
+            // async void: an escaping exception would tear down the whole app
             AddSystemMessage($"{FindTranslation("ChatWindow_ScreenshotFailed", "Không chụp được màn hình.")} {ex.Message}");
         }
     }
