@@ -18,9 +18,41 @@ public class AvaloniaDialogService : IDialogService
         return null;
     }
 
+    /// <summary>
+    /// Finds a window that can own a modal dialog. Avalonia throws if the owner is hidden,
+    /// and the main window is hidden whenever the app is minimised to the tray — which used
+    /// to crash the app on any dialog (update check, incoming file prompt, ...).
+    /// </summary>
+    private Window? GetDialogOwner()
+    {
+        if (Application.Current?.ApplicationLifetime is not IClassicDesktopStyleApplicationLifetime desktop)
+            return null;
+
+        foreach (var window in desktop.Windows)
+            if (window.IsVisible && window.IsActive)
+                return window;
+
+        foreach (var window in desktop.Windows)
+            if (window.IsVisible)
+                return window;
+
+        // Everything is hidden (tray mode): bring the main window back so the dialog has a
+        // valid owner and the user can actually see what is being asked.
+        var main = desktop.MainWindow;
+        if (main != null)
+        {
+            main.Show();
+            main.WindowState = WindowState.Normal;
+            main.Activate();
+            return main;
+        }
+
+        return null;
+    }
+
     private IStorageProvider? GetStorageProvider()
     {
-        var window = GetMainWindow();
+        var window = GetDialogOwner() ?? GetMainWindow();
         return window != null ? TopLevel.GetTopLevel(window)?.StorageProvider : null;
     }
 
@@ -71,11 +103,18 @@ public class AvaloniaDialogService : IDialogService
 
     public async Task<MessageBoxResult> ShowMessageBoxAsync(string title, string message, MessageBoxButton buttons = MessageBoxButton.Ok)
     {
-        var owner = GetMainWindow();
-        if (owner == null)
-            return MessageBoxResult.None;
-
         var dialog = new MessageBoxWindow(title, message, buttons);
-        return await dialog.ShowDialog<MessageBoxResult>(owner);
+        var owner = GetDialogOwner();
+
+        if (owner != null && owner.IsVisible)
+            return await dialog.ShowDialog<MessageBoxResult>(owner);
+
+        // No window we can hang a modal off — show it standalone rather than throwing,
+        // which would take the whole app down from an async void event handler.
+        var closed = new TaskCompletionSource<MessageBoxResult>();
+        dialog.Closed += (_, _) => closed.TrySetResult(dialog.Result);
+        dialog.Show();
+        dialog.Activate();
+        return await closed.Task;
     }
 }

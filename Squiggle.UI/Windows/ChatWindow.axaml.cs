@@ -385,10 +385,14 @@ public partial class ChatWindow : Window
 
             AddOutgoingFileMessage(filePath, fileName);
             AttachTransferFeedback(handler, fileName, sending: true, savedPath: null, disposeOnFinish: content);
+
+            Serilog.Log.Information("Sending file '{Name}' ({Size} bytes) to {Buddy}",
+                info.Name, info.Length, _buddy?.DisplayName);
             handler.Start();
         }
         catch (Exception ex)
         {
+            Serilog.Log.Error(ex, "Sending file {Name} failed", fileName);
             AddSystemMessage($"{FindTranslation("ChatWindow_CouldNotReadFile", "Không đọc được file")} {fileName}: {ex.Message}");
         }
     }

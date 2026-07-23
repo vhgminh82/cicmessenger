@@ -54,12 +54,21 @@ public class FileTransferCoordinator
 
     void OnActivityInvitationReceived(object? sender, ActivityInvitationReceivedEventArgs e)
     {
+        Serilog.Log.Information("Activity invite received from {Buddy}, activityId={ActivityId}",
+            e.Buddy?.DisplayName, e.ActivityId);
+
         if (e.ActivityId != SquiggleActivities.FileTransfer)
             return;
 
         var handler = new FileTransferActivity().FromInvite(e.Executor, e.Metadata);
         if (handler is not IFileTransferHandler transfer)
+        {
+            Serilog.Log.Warning("Invite was not a file transfer handler");
             return;
+        }
+
+        Serilog.Log.Information("Incoming file offer '{Name}' ({Size} bytes) from {Buddy}",
+            transfer.Name, transfer.Size, e.Buddy?.DisplayName);
 
         Dispatcher.UIThread.Post(async () =>
         {

@@ -8,6 +8,9 @@ public partial class MessageBoxWindow : Window
 {
     private readonly MessageBoxButton _buttons;
 
+    /// <summary>Outcome, for when the box is shown without an owner to be modal against.</summary>
+    public MessageBoxResult Result { get; private set; } = MessageBoxResult.None;
+
     public MessageBoxWindow()
     {
         InitializeComponent();
@@ -42,21 +45,21 @@ public partial class MessageBoxWindow : Window
 
     private void PrimaryButton_Click(object? sender, RoutedEventArgs e)
     {
-        var result = _buttons switch
+        Result = _buttons switch
         {
             MessageBoxButton.YesNo => MessageBoxResult.Yes,
             _ => MessageBoxResult.Ok,
         };
-        Close(result);
+        Close(Result);
     }
 
     private void SecondaryButton_Click(object? sender, RoutedEventArgs e)
     {
-        var result = _buttons switch
+        Result = _buttons switch
         {
             MessageBoxButton.YesNo => MessageBoxResult.No,
             _ => MessageBoxResult.Cancel,
         };
-        Close(result);
+        Close(Result);
     }
 }
