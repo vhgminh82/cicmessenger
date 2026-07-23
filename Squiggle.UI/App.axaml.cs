@@ -93,6 +93,7 @@ public partial class App : Application
         services.AddSingleton<IClipboardService, AvaloniaClipboardService>();
         services.AddSingleton<IAutoStartService, WindowsAutoStartService>();
         services.AddSingleton<ChatWindowManager>();
+        services.AddSingleton<FileTransferCoordinator>();
 
         return services.BuildServiceProvider();
     }

@@ -45,6 +45,13 @@ public partial class MainWindow : Window
         if (chatClient is ChatClient concreteClient)
             concreteClient.OfflineMessagesDelivered += ChatClient_OfflineMessagesDelivered;
 
+        // Watch for incoming file offers at app level, so an offer is never missed because
+        // the chat window hadn't been created yet.
+        var fileTransfers = App.Services.GetRequiredService<FileTransferCoordinator>();
+        fileTransfers.Observe(chatClient);
+        fileTransfers.FileReceived += FileTransfers_FileReceived;
+        fileTransfers.Progress += FileTransfers_Progress;
+
         // Pre-populate sign-in form with saved settings
         var settingsService = App.Services.GetRequiredService<SettingsService>();
         var settings = settingsService.Load();
@@ -258,16 +265,30 @@ public partial class MainWindow : Window
 
     private async void UpdateMenu_Click(object? sender, RoutedEventArgs e)
     {
-        var dialogService = App.Services.GetRequiredService<IDialogService>();
-        var updateService = new UpdateService();
-
+        // async void: anything escaping this method kills the process, so every path —
+        // including the error path — has to be guarded.
         try
         {
-            var update = await updateService.CheckForUpdateAsync();
+            var dialogService = App.Services.GetRequiredService<IDialogService>();
+            var updateService = new UpdateService();
+
+            UpdateService.UpdateInfo? update;
+            try
+            {
+                update = await updateService.CheckForUpdateAsync();
+            }
+            catch (Exception ex)
+            {
+                await ShowUpdateMessageAsync(
+                    FindTranslation("Update_Failed", "Could not check for updates.") + $"\n\n{ex.Message}");
+                return;
+            }
+
             if (update == null)
             {
-                await dialogService.ShowMessageBoxAsync("CICMessenger",
-                    FindTranslation("Update_UpToDate", "You are on the latest version."));
+                await ShowUpdateMessageAsync(string.Format(
+                    FindTranslation("Update_UpToDate", "You are on the latest version.") + " (v{0}.{1})",
+                    UpdateService.CurrentVersion.Major, UpdateService.CurrentVersion.Minor));
                 return;
             }
 
@@ -278,16 +299,37 @@ public partial class MainWindow : Window
             if (result != MessageBoxResult.Yes)
                 return;
 
-            await updateService.DownloadAndApplyAsync(update);
+            try
+            {
+                await updateService.DownloadAndApplyAsync(update);
+            }
+            catch (Exception ex)
+            {
+                await ShowUpdateMessageAsync(
+                    FindTranslation("Update_Failed", "Could not download the update.") + $"\n\n{ex.Message}");
+                return;
+            }
 
             // The helper script replaces the exe after we exit
             _forceClose = true;
             Close();
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            await dialogService.ShowMessageBoxAsync("CICMessenger",
-                FindTranslation("Update_Failed", "Could not check for updates. Please check your connection."));
+            Serilog.Log.Error(ex, "Update check failed");
+        }
+    }
+
+    private async System.Threading.Tasks.Task ShowUpdateMessageAsync(string message)
+    {
+        try
+        {
+            var dialogService = App.Services.GetRequiredService<IDialogService>();
+            await dialogService.ShowMessageBoxAsync("CICMessenger", message);
+        }
+        catch (Exception ex)
+        {
+            Serilog.Log.Error(ex, "Could not show update dialog");
         }
     }
 
@@ -308,6 +350,24 @@ public partial class MainWindow : Window
             _notificationService?.ShowNotification("Liên hệ trực tuyến",
                 $"{e.Buddy.DisplayName} đang trực tuyến");
         });
+    }
+
+    private void FileTransfers_FileReceived(object? sender, FileReceivedEventArgs e)
+    {
+        var chatClient = App.Services.GetRequiredService<IChatClient>();
+        var windowManager = App.Services.GetRequiredService<ChatWindowManager>();
+        var window = windowManager.OpenOrFocus(e.Buddy, () => chatClient.StartChat(e.Buddy));
+        window.ShowReceivedFile(e.FilePath, e.FileName);
+
+        _notificationService?.ShowMessageNotification(e.Buddy.DisplayName, $"Đã nhận file: {e.FileName}");
+    }
+
+    private void FileTransfers_Progress(object? sender, FileTransferProgressEventArgs e)
+    {
+        var chatClient = App.Services.GetRequiredService<IChatClient>();
+        var windowManager = App.Services.GetRequiredService<ChatWindowManager>();
+        var window = windowManager.OpenOrFocus(e.Buddy, () => chatClient.StartChat(e.Buddy));
+        window.ShowSystemNotice(e.Message);
     }
 
     private void ChatClient_OfflineMessagesDelivered(object? sender, OfflineMessagesDeliveredEventArgs e)

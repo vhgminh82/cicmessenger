@@ -145,7 +145,6 @@ public partial class ChatWindow : Window
         _chatSession.BuddyJoined += ChatSession_BuddyJoined;
         _chatSession.BuddyLeft += ChatSession_BuddyLeft;
         _chatSession.MessageFailed += ChatSession_MessageFailed;
-        _chatSession.ActivityInvitationReceived += ChatSession_ActivityInvitationReceived;
     }
 
     private void DetachChatSession()
@@ -158,7 +157,6 @@ public partial class ChatWindow : Window
         _chatSession.BuddyJoined -= ChatSession_BuddyJoined;
         _chatSession.BuddyLeft -= ChatSession_BuddyLeft;
         _chatSession.MessageFailed -= ChatSession_MessageFailed;
-        _chatSession.ActivityInvitationReceived -= ChatSession_ActivityInvitationReceived;
     }
 
     public void SetChatSession(IChat chat)
@@ -450,6 +448,10 @@ public partial class ChatWindow : Window
         handler.TransferFinished += (_, _) => disposeOnFinish?.Dispose();
     }
 
+    public void ShowReceivedFile(string savedPath, string fileName) => AddIncomingFileMessage(savedPath, fileName);
+
+    public void ShowSystemNotice(string text) => AddSystemMessage(text);
+
     private void AddIncomingFileMessage(string savedPath, string fileName)
     {
         var kind = IsImage(savedPath) ? ChatMessageKind.Image
@@ -475,85 +477,6 @@ public partial class ChatWindow : Window
             IsOwn = false
         });
         ScrollToBottom();
-    }
-
-    /// <summary>
-    /// Handles an incoming file offer: asks the user, then streams it into the downloads
-    /// folder under a non-colliding name.
-    /// </summary>
-    private void ChatSession_ActivityInvitationReceived(object? sender, ActivityInvitationReceivedEventArgs e)
-    {
-        if (e.ActivityId != SquiggleActivities.FileTransfer)
-            return;
-
-        var handler = new FileTransferActivity().FromInvite(e.Executor, e.Metadata);
-        if (handler is not IFileTransferHandler transfer)
-            return;
-
-        Avalonia.Threading.Dispatcher.UIThread.Post(async () =>
-        {
-            var dialogService = App.Services.GetRequiredService<IDialogService>();
-            var prompt = string.Format(
-                FindTranslation("ChatWindow_FileOffer", "{0} muốn gửi cho bạn file \"{1}\" ({2}). Bạn có nhận không?"),
-                e.Buddy.DisplayName, transfer.Name, FormatSize(transfer.Size));
-
-            var answer = await dialogService.ShowMessageBoxAsync("CICMessenger", prompt, MessageBoxButton.YesNo);
-            if (answer != MessageBoxResult.Yes)
-            {
-                transfer.Cancel();
-                AddSystemMessage(string.Format(
-                    FindTranslation("ChatWindow_FileRejected", "Đã từ chối nhận file: {0}"), transfer.Name));
-                return;
-            }
-
-            var savePath = BuildDownloadPath(transfer.Name);
-            AttachTransferFeedback(transfer, transfer.Name, sending: false, savedPath: savePath, disposeOnFinish: null);
-            AddSystemMessage(string.Format(
-                FindTranslation("ChatWindow_FileReceiving", "Đang nhận file: {0}"), transfer.Name));
-            transfer.Accept(savePath);
-        });
-    }
-
-    /// <summary>
-    /// Picks a writable, non-colliding path inside the configured downloads folder.
-    /// The file name has already had any directory part stripped by FileInviteData.
-    /// </summary>
-    private static string BuildDownloadPath(string fileName)
-    {
-        var settings = App.Services.GetRequiredService<SettingsService>().Load();
-        var folder = settings.GeneralSettings.DownloadsFolder;
-
-        if (string.IsNullOrWhiteSpace(folder) || !System.IO.Directory.Exists(folder))
-            folder = System.IO.Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
-
-        System.IO.Directory.CreateDirectory(folder);
-
-        var safeName = System.IO.Path.GetFileName(fileName);
-        if (string.IsNullOrWhiteSpace(safeName))
-            safeName = "received_file";
-
-        var candidate = System.IO.Path.Combine(folder, safeName);
-        var baseName = System.IO.Path.GetFileNameWithoutExtension(safeName);
-        var ext = System.IO.Path.GetExtension(safeName);
-        int counter = 1;
-        while (System.IO.File.Exists(candidate))
-            candidate = System.IO.Path.Combine(folder, $"{baseName} ({counter++}){ext}");
-
-        return candidate;
-    }
-
-    private static string FormatSize(long bytes)
-    {
-        string[] units = { "B", "KB", "MB", "GB" };
-        double size = bytes;
-        int unit = 0;
-        while (size >= 1024 && unit < units.Length - 1)
-        {
-            size /= 1024;
-            unit++;
-        }
-        return $"{size:0.#} {units[unit]}";
     }
 
     private void PlayVideo_Click(object? sender, RoutedEventArgs e)

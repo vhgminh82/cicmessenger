@@ -7,6 +7,11 @@
     <!-- Needed for the pointer-based pixel copy in ScreenCapture -->
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 
+    <!-- The repo disables generated assembly info and relies on Shared/AssemblyInfo*.cs,
+         which this project does not include — leaving the version at 0.0.0.0 and showing
+         "V0.0" in the UI. Generate it here so <Version> actually reaches the assembly. -->
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+
     <!-- Desktop chat app: favour a small memory footprint over throughput.
          Referencing Microsoft.AspNetCore.App (for the gRPC chat host) otherwise
          pulls in server-oriented GC defaults. -->

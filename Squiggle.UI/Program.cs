@@ -1,5 +1,7 @@
 using System;
+using System.IO;
 using System.Threading;
+using System.Threading.Tasks;
 using Avalonia;
 
 namespace Squiggle.UI;
@@ -20,14 +22,53 @@ class Program
             return;
         }
 
+        InstallCrashLogging();
+
         try
         {
             BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
+        }
+        catch (Exception ex)
+        {
+            WriteCrashLog("Startup", ex);
+            throw;
         }
         finally
         {
             _singleInstanceMutex.ReleaseMutex();
             _singleInstanceMutex.Dispose();
+        }
+    }
+
+    /// <summary>
+    /// Records exceptions that would otherwise kill the process without a trace — the app
+    /// previously just vanished, leaving nothing to diagnose.
+    /// </summary>
+    static void InstallCrashLogging()
+    {
+        AppDomain.CurrentDomain.UnhandledException += (_, e) =>
+            WriteCrashLog("Unhandled", e.ExceptionObject as Exception);
+
+        TaskScheduler.UnobservedTaskException += (_, e) =>
+        {
+            WriteCrashLog("UnobservedTask", e.Exception);
+            e.SetObserved();
+        };
+    }
+
+    static void WriteCrashLog(string source, Exception? ex)
+    {
+        try
+        {
+            var folder = Path.Combine(AppContext.BaseDirectory, "logs");
+            Directory.CreateDirectory(folder);
+            var file = Path.Combine(folder, "crash.log");
+            File.AppendAllText(file,
+                $"=== {DateTime.Now:yyyy-MM-dd HH:mm:ss} [{source}] ==={Environment.NewLine}{ex}{Environment.NewLine}{Environment.NewLine}");
+        }
+        catch
+        {
+            // Nothing useful to do if even the crash log can't be written
         }
     }
 

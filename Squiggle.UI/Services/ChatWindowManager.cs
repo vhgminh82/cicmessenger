@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Microsoft.Extensions.DependencyInjection;
 using Squiggle.Client;
 using Squiggle.UI.Windows;
 
@@ -68,6 +69,10 @@ public class ChatWindowManager
 
     private ChatWindow Open(string key, IBuddy buddy, IChat chat)
     {
+        // Locally started chats never raise ChatStarted, so hook them here too or a file
+        // the peer sends back on this session would go unanswered.
+        App.Services.GetRequiredService<FileTransferCoordinator>().Attach(chat);
+
         var window = new ChatWindow(buddy, chat);
         _openWindows[key] = window;
         window.Closed += (_, _) => _openWindows.Remove(key);
