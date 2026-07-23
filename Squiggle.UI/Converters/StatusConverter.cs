@@ -15,12 +15,12 @@ public class StatusConverter : IValueConverter
         {
             return status switch
             {
-                UserStatus.Online => "Online",
-                UserStatus.Busy => "Busy",
-                UserStatus.BeRightBack => "Be Right Back",
-                UserStatus.Away => "Away",
-                UserStatus.Idle => "Idle",
-                UserStatus.Offline => "Offline",
+                UserStatus.Online => "Trực tuyến",
+                UserStatus.Busy => "Bận",
+                UserStatus.BeRightBack => "Sẽ quay lại ngay",
+                UserStatus.Away => "Vắng mặt",
+                UserStatus.Idle => "Không hoạt động",
+                UserStatus.Offline => "Ngoại tuyến",
                 _ => status.ToString()
             };
         }

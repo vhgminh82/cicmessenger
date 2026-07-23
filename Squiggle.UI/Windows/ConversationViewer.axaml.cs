@@ -52,18 +52,18 @@ public partial class ConversationViewer : Window
 
         messagesList.ItemsSource = messages;
         if (messages.Count > 0)
-            Title = $"Conversation - {messages.First().SenderName}";
+            Title = $"Cuộc trò chuyện - {messages.First().SenderName}";
     }
 
     private async void Export_Click(object? sender, RoutedEventArgs e)
     {
         var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
         {
-            Title = "Export Conversation",
+            Title = "Xuất cuộc trò chuyện",
             DefaultExtension = "txt",
             FileTypeChoices = new[]
             {
-                new FilePickerFileType("Text Files") { Patterns = new[] { "*.txt" } }
+                new FilePickerFileType("Tệp văn bản") { Patterns = new[] { "*.txt" } }
             }
         });
 

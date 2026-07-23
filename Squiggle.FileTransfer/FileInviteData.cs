@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 
 namespace Squiggle.FileTransfer
@@ -20,10 +21,21 @@ namespace Squiggle.FileTransfer
             var dictionary = data.ToDictionary(i => i.Key, i => i.Value);
 
             if (dictionary.TryGetValue("name", out var name))
-                Name = name;
+                Name = Sanitize(name);
 
             if (dictionary.TryGetValue("size", out var sizeStr) && long.TryParse(sizeStr, out var size))
                 Size = size;
+        }
+
+        /// <summary>
+        /// Strips any directory component from a peer-supplied file name so callers can
+        /// safely combine it with a local download folder without risking path traversal
+        /// (e.g. a malicious peer sending "..\..\evil.exe" as the file name).
+        /// </summary>
+        static string Sanitize(string name)
+        {
+            var fileName = Path.GetFileName(name);
+            return string.IsNullOrWhiteSpace(fileName) ? "unnamed_file" : fileName;
         }
 
         public IEnumerator<KeyValuePair<string, string>> GetEnumerator()

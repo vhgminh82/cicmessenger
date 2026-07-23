@@ -21,8 +21,8 @@ public class ClientViewModel : ViewModelBase
         get
         {
             if (IsLoggedIn)
-                return $"Squiggle Messenger - {LoggedInUser.DisplayName}";
-            return "Squiggle Messenger";
+                return $"CICMessenger - {LoggedInUser.DisplayName}";
+            return "CICMessenger";
         }
     }
 

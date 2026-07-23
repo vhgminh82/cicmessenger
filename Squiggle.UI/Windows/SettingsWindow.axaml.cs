@@ -2,6 +2,7 @@ using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
 using Microsoft.Extensions.DependencyInjection;
+using Squiggle.Client;
 using Squiggle.UI.Services;
 using Squiggle.UI.ViewModel;
 
@@ -32,6 +33,10 @@ public partial class SettingsWindow : Window
 
         var themeService = App.Services.GetRequiredService<ThemeService>();
         themeService.ApplyTheme(_viewModel.GeneralSettings.ThemeMode);
+
+        var chatClient = App.Services.GetRequiredService<IChatClient>();
+        chatClient.EnableLogging = _viewModel.ChatSettings.EnableLogging;
+
         Close(true);
     }
 
@@ -44,7 +49,7 @@ public partial class SettingsWindow : Window
     {
         var folders = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
         {
-            Title = "Select Downloads Folder",
+            Title = "Chọn thư mục tải xuống",
             AllowMultiple = false
         });
 

@@ -56,6 +56,9 @@ public class PersonalSettingsViewModel : ViewModelBase
     private string _displayName = "";
     public string DisplayName { get => _displayName; set => Set(ref _displayName, value); }
 
+    private string _password = "";
+    public string Password { get => _password; set => Set(ref _password, value); }
+
     private string _displayMessage = "";
     public string DisplayMessage { get => _displayMessage; set => Set(ref _displayMessage, value); }
 

@@ -25,16 +25,16 @@ public partial class MessageBoxWindow : Window
         switch (buttons)
         {
             case MessageBoxButton.Ok:
-                btnPrimary.Content = "OK";
+                btnPrimary.Content = "Đồng ý";
                 break;
             case MessageBoxButton.OkCancel:
-                btnPrimary.Content = "OK";
-                btnSecondary.Content = "Cancel";
+                btnPrimary.Content = "Đồng ý";
+                btnSecondary.Content = "Hủy";
                 btnSecondary.IsVisible = true;
                 break;
             case MessageBoxButton.YesNo:
-                btnPrimary.Content = "Yes";
-                btnSecondary.Content = "No";
+                btnPrimary.Content = "Có";
+                btnSecondary.Content = "Không";
                 btnSecondary.IsVisible = true;
                 break;
         }

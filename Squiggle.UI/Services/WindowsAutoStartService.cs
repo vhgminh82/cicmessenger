@@ -8,7 +8,7 @@ namespace Squiggle.UI.Services;
 public class WindowsAutoStartService : IAutoStartService
 {
     private const string RegistryKeyPath = @"Software\Microsoft\Windows\CurrentVersion\Run";
-    private const string AppName = "Squiggle";
+    private const string AppName = "CICMessenger";
 
     private static string AppPath => Environment.ProcessPath ?? string.Empty;
 

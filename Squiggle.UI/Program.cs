@@ -11,7 +11,7 @@ class Program
     [STAThread]
     public static void Main(string[] args)
     {
-        const string mutexName = "SquiggleMessenger_SingleInstance";
+        const string mutexName = "CICMessenger_SingleInstance";
         _singleInstanceMutex = new Mutex(true, mutexName, out bool createdNew);
 
         if (!createdNew)

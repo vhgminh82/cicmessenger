@@ -20,7 +20,9 @@ namespace Squiggle.Client
         bool EnableLogging { get; set; }
 
         IChat StartChat(IBuddy buddy);
+        IChat? StartBroadcastChat();
         void Login(LoginOptions options);
         void Logout();
+        bool RemoveBuddy(IBuddy buddy);
     }
 }

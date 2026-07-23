@@ -59,14 +59,19 @@ public partial class App : Application
 
         services.AddLogging(builder => builder.AddSerilog(dispose: true));
 
-        var dbPath = Path.Combine(appLocation, "squiggle_history.db");
+        // Store history DB in AppData, not next to the exe — the portable exe may sit in a
+        // read-only or cloud-synced folder where SQLite writes fail or get corrupted.
+        var dataFolder = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "CICMessenger");
+        Directory.CreateDirectory(dataFolder);
+        var dbPath = Path.Combine(dataFolder, "history.db");
         var historyManager = new HistoryManager($"Data Source={dbPath}");
         services.AddSingleton(historyManager);
 
         services.AddSingleton<IChatClient>(provider =>
         {
             var loggerFactory = provider.GetRequiredService<ILoggerFactory>();
-            return new ChatClient(Guid.NewGuid().ToString(), historyManager, loggerFactory);
+            return new ChatClient(SettingsService.GetOrCreateClientId(), historyManager, loggerFactory);
         });
 
         // Plugins
@@ -84,6 +89,7 @@ public partial class App : Application
         services.AddSingleton<IDialogService, AvaloniaDialogService>();
         services.AddSingleton<IClipboardService, AvaloniaClipboardService>();
         services.AddSingleton<IAutoStartService, WindowsAutoStartService>();
+        services.AddSingleton<ChatWindowManager>();
 
         return services.BuildServiceProvider();
     }

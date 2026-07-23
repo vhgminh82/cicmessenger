@@ -1,7 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="Squiggle.UI.Windows.EmoticonPicker"
-        Title="Emoticons"
+        Title="Biểu tượng cảm xúc"
         Width="280" Height="200"
         WindowStartupLocation="CenterOwner"
         CanResize="False"

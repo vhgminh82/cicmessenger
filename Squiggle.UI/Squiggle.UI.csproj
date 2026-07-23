@@ -2,10 +2,15 @@
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <RootNamespace>Squiggle.UI</RootNamespace>
-    <AssemblyName>Squiggle.UI</AssemblyName>
+    <AssemblyName>CICMessenger</AssemblyName>
+    <ApplicationIcon>Assets\cic-logo.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <AvaloniaResource Include="Assets\cic-logo.ico" />
+    <AvaloniaResource Include="Assets\cic-logo-256.png" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Avalonia" Version="11.3.*" />

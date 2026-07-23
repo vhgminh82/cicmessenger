@@ -5,11 +5,11 @@
     <ImplicitUsings>disable</ImplicitUsings>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <Nullable>enable</Nullable>
-    <Version>4.0.1.0</Version>
-    <AssemblyVersion>4.0.1.0</AssemblyVersion>
-    <Company>Overroot</Company>
-    <Product>Squiggle Messenger</Product>
-    <Copyright>Copyright © 2010 Overroot</Copyright>
+    <Version>0.1.0</Version>
+    <AssemblyVersion>0.1.0.0</AssemblyVersion>
+    <Company>CIC</Company>
+    <Product>CICMessenger</Product>
+    <Copyright>Copyright © 2026 CIC</Copyright>
 
     <!-- Trimming: enable trim analyzers globally to surface warnings,
          but only enable PublishTrimmed in non-WPF projects (WPF blocks trimming).

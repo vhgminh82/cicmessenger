@@ -8,6 +8,8 @@ public class LoginEventArgs : EventArgs
 {
     public string DisplayName { get; init; } = "";
     public string GroupName { get; init; } = "";
+    public string Password { get; init; } = "";
+    public bool SaveNameAndPassword { get; init; }
 }
 
 public partial class SignInControl : UserControl
@@ -19,18 +21,25 @@ public partial class SignInControl : UserControl
         InitializeComponent();
     }
 
-    public void SetDefaults(string displayName, string groupName)
+    public void SetDefaults(string displayName, string groupName, string password = "", bool saveNameAndPassword = false)
     {
         if (!string.IsNullOrEmpty(displayName))
             txtDisplayName.Text = displayName;
-        if (!string.IsNullOrEmpty(groupName))
-            txtGroupName.Text = groupName;
+        if (!string.IsNullOrEmpty(password))
+            txtPassword.Text = password;
+        chkRememberMe.IsChecked = saveNameAndPassword;
+
+        // Group name is no longer asked for at sign-in; keep whatever was configured
+        // in Settings so existing grouping still works.
+        _groupName = groupName;
     }
+
+    private string _groupName = "";
 
     private void SignIn_Click(object? sender, RoutedEventArgs e)
     {
         var displayName = txtDisplayName.Text?.Trim() ?? "";
-        var groupName = txtGroupName.Text?.Trim() ?? "";
+        var password = txtPassword.Text ?? "";
 
         if (string.IsNullOrEmpty(displayName))
             return;
@@ -38,7 +47,9 @@ public partial class SignInControl : UserControl
         LoginRequested?.Invoke(this, new LoginEventArgs
         {
             DisplayName = displayName,
-            GroupName = groupName
+            GroupName = _groupName,
+            Password = password,
+            SaveNameAndPassword = chkRememberMe.IsChecked ?? false
         });
     }
 }

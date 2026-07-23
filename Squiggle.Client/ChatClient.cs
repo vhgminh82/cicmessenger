@@ -66,6 +66,7 @@ namespace Squiggle.Client
 
             IChatSession session = chatService.CreateSession(new SquiggleEndPoint(buddy.Id, ((Buddy)buddy).ChatEndPoint));
             var chat = new Chat(session, CurrentUser, new[]{ buddy }, id=>buddies[id], history);
+            chat.EnableLogging = EnableLogging;
             return chat;
         }        
 
@@ -98,6 +99,45 @@ namespace Squiggle.Client
             IsLoggedIn = true;
         }        
 
+        /// <summary>
+        /// Opens a one-to-one session with every online buddy and wraps them in a single
+        /// broadcast chat, so one typed message fans out to everyone on the LAN.
+        /// Returns null when nobody is online.
+        /// </summary>
+        public IChat? StartBroadcastChat()
+        {
+            if (!IsLoggedIn)
+                throw new InvalidOperationException("Not logged in.");
+
+            var sessions = buddies.Where(b => b.IsOnline())
+                                  .Select(b => StartChat(b))
+                                  .ToList();
+
+            if (sessions.Count == 0)
+                return null;
+
+            var broadcast = new BroadcastChat(sessions);
+            broadcast.EnableLogging = EnableLogging;
+            return broadcast;
+        }
+
+        /// <summary>
+        /// Removes a buddy from the contact list. Only allowed while the buddy is offline,
+        /// so a stale/duplicate entry (e.g. left over from a reinstalled or renamed client)
+        /// can be cleaned up without accidentally dropping someone who's still connected.
+        /// </summary>
+        public bool RemoveBuddy(IBuddy buddy)
+        {
+            if (buddy.IsOnline())
+                return false;
+
+            var existing = buddies[buddy.Id];
+            if (existing == null)
+                return false;
+
+            return buddies.Remove(existing);
+        }
+
         public void Logout()
         {
             IsLoggedIn = false;
@@ -128,6 +168,7 @@ namespace Squiggle.Client
             if (buddyList.Any())
             {
                 var chat = new Chat(e.Session, CurrentUser, buddyList, id=>buddies[id], history);
+                chat.EnableLogging = EnableLogging;
                 ChatStarted(this, new ChatStartedEventArgs() { Chat = chat, Buddies = buddyList });
             }
         }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Platform;
 using Squiggle.Core.Presence;
 
 namespace Squiggle.UI.Services;
@@ -12,12 +13,12 @@ public class AvaloniaTrayIconService : ITrayIconService, IDisposable
     private TrayIcon? _trayIcon;
     private readonly Dictionary<UserStatus, string> _statusLabels = new()
     {
-        [UserStatus.Online] = "Online",
-        [UserStatus.Away] = "Away",
-        [UserStatus.Busy] = "Busy",
-        [UserStatus.BeRightBack] = "Be Right Back",
-        [UserStatus.Idle] = "Idle",
-        [UserStatus.Offline] = "Offline",
+        [UserStatus.Online] = "Trực tuyến",
+        [UserStatus.Away] = "Vắng mặt",
+        [UserStatus.Busy] = "Bận",
+        [UserStatus.BeRightBack] = "Sẽ quay lại ngay",
+        [UserStatus.Idle] = "Không hoạt động",
+        [UserStatus.Offline] = "Ngoại tuyến",
     };
 
     public event EventHandler? TrayIconClicked;
@@ -29,7 +30,8 @@ public class AvaloniaTrayIconService : ITrayIconService, IDisposable
 
         _trayIcon = new TrayIcon
         {
-            ToolTipText = "Squiggle",
+            ToolTipText = "CICMessenger",
+            Icon = new WindowIcon(AssetLoader.Open(new Uri("avares://CICMessenger/Assets/cic-logo-256.png"))),
             Menu = CreateContextMenu(),
         };
 
@@ -63,15 +65,15 @@ public class AvaloniaTrayIconService : ITrayIconService, IDisposable
 
     public void SetStatusIcon(UserStatus status)
     {
-        var label = _statusLabels.GetValueOrDefault(status, "Squiggle");
-        SetTooltip($"Squiggle - {label}");
+        var label = _statusLabels.GetValueOrDefault(status, "CICMessenger");
+        SetTooltip($"CICMessenger - {label}");
     }
 
     private NativeMenu CreateContextMenu()
     {
         var menu = new NativeMenu();
 
-        var openItem = new NativeMenuItem("Open Squiggle");
+        var openItem = new NativeMenuItem("Mở CICMessenger");
         openItem.Click += (_, _) => TrayIconClicked?.Invoke(this, EventArgs.Empty);
         menu.Add(openItem);
 
@@ -88,16 +90,16 @@ public class AvaloniaTrayIconService : ITrayIconService, IDisposable
             statusMenu.Add(item);
         }
 
-        var statusItem = new NativeMenuItem("Status") { Menu = statusMenu };
+        var statusItem = new NativeMenuItem("Trạng thái") { Menu = statusMenu };
         menu.Add(statusItem);
 
         menu.Add(new NativeMenuItemSeparator());
 
-        var signOutItem = new NativeMenuItem("Sign Out");
+        var signOutItem = new NativeMenuItem("Đăng xuất");
         signOutItem.Click += (_, _) => SignOutRequested?.Invoke(this, EventArgs.Empty);
         menu.Add(signOutItem);
 
-        var exitItem = new NativeMenuItem("Exit");
+        var exitItem = new NativeMenuItem("Thoát");
         exitItem.Click += (_, _) => ExitRequested?.Invoke(this, EventArgs.Empty);
         menu.Add(exitItem);
 

@@ -1,10 +1,12 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="Squiggle.UI.Windows.SettingsWindow"
-        Title="Squiggle Settings"
-        Width="480" Height="420"
+        Icon="avares://CICMessenger/Assets/cic-logo.ico"
+        Title="Cài đặt CICMessenger"
+        Width="640" Height="560"
+        MinWidth="640" MinHeight="560"
         WindowStartupLocation="CenterOwner"
-        CanResize="False">
+        CanResize="True">
     <DockPanel>
         <!-- OK/Cancel buttons at bottom -->
         <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal"
@@ -48,8 +50,8 @@
                               IsChecked="{Binding GeneralSettings.CheckForUpdates}" />
 
                     <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,8,0,0">
-                        <TextBlock Text="Theme:" VerticalAlignment="Center" />
-                        <ComboBox SelectedItem="{Binding GeneralSettings.ThemeMode}" Width="120">
+                        <TextBlock Text="Giao diện:" VerticalAlignment="Center" />
+                        <ComboBox SelectedItem="{Binding GeneralSettings.ThemeMode}" Width="160">
                             <x:String>System</x:String>
                             <x:String>Light</x:String>
                             <x:String>Dark</x:String>

@@ -73,7 +73,7 @@ namespace Squiggle.FileTransfer
             if (!SelfInitiated && filePath != null)
             {
                 try { File.Delete(filePath); }
-                catch (IOException) { /* best effort cleanup */ }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { /* best effort cleanup */ }
             }
 
             base.OnTransferCancelled();

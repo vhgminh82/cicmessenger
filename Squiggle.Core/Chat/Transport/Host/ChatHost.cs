@@ -28,6 +28,7 @@ namespace Squiggle.Core.Chat.Transport.Host
         bool useQuic;
         WebApplication? grpcApp;
         readonly ConcurrentDictionary<string, GrpcChannel> channels = new();
+        readonly ConcurrentDictionary<string, byte[]> pinnedCertHashes = new();
         readonly ILogger<ChatHost> logger;
         readonly EncryptionManager encryptionManager;
 
@@ -191,10 +192,26 @@ namespace Squiggle.Core.Chat.Transport.Host
 
                 if (quicEnabled)
                 {
-                    // Skip certificate validation for LAN peers using self-signed certs
+                    // LAN peers use self-signed certs, so a CA chain can't be validated.
+                    // Instead, pin the certificate on first contact (TOFU) and reject
+                    // silent changes afterwards, which would indicate a MITM.
                     handler.SslOptions = new System.Net.Security.SslClientAuthenticationOptions
                     {
-                        RemoteCertificateValidationCallback = (_, _, _, _) => true
+                        RemoteCertificateValidationCallback = (_, certificate, _, _) =>
+                        {
+                            if (certificate == null)
+                                return false;
+
+                            var hash = certificate.GetCertHash(System.Security.Cryptography.HashAlgorithmName.SHA256);
+                            var pinned = pinnedCertHashes.GetOrAdd(key, hash);
+                            if (!pinned.AsSpan().SequenceEqual(hash))
+                            {
+                                logger.LogWarning("Certificate for {Key} changed since first contact — possible MITM, rejecting connection", key);
+                                return false;
+                            }
+
+                            return true;
+                        }
                     };
                 }
 

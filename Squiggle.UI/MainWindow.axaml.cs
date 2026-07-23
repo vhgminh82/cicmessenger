@@ -45,10 +45,17 @@ public partial class MainWindow : Window
         // Pre-populate sign-in form with saved settings
         var settingsService = App.Services.GetRequiredService<SettingsService>();
         var settings = settingsService.Load();
-        signInControl.SetDefaults(settings.PersonalSettings.DisplayName, settings.PersonalSettings.GroupName);
+        signInControl.SetDefaults(
+            settings.PersonalSettings.DisplayName,
+            settings.PersonalSettings.GroupName,
+            settings.PersonalSettings.Password,
+            settings.PersonalSettings.RememberMe);
 
         InitializeTrayIcon();
         InitializeNotifications();
+
+        var version = Services.UpdateService.CurrentVersion;
+        versionLabel.Text = $"V{version.Major}.{version.Minor}";
     }
 
     private void InitializeTrayIcon()
@@ -114,8 +121,8 @@ public partial class MainWindow : Window
             var localIP = GetLocalIPAddress();
             if (localIP == null)
             {
-                await dialogService.ShowMessageBoxAsync("Error",
-                    "Could not detect a local network address. Please check your network connection.");
+                await dialogService.ShowMessageBoxAsync("Lỗi",
+                    "Không phát hiện được địa chỉ mạng nội bộ. Vui lòng kiểm tra kết nối mạng của bạn.");
                 return;
             }
 
@@ -140,16 +147,19 @@ public partial class MainWindow : Window
                 UserProperties = properties
             };
 
+            chatClient.EnableLogging = settings.ChatSettings.EnableLogging;
             chatClient.Login(loginOptions);
 
             // Save display name for next time
             settings.PersonalSettings.DisplayName = e.DisplayName;
             settings.PersonalSettings.GroupName = e.GroupName;
+            settings.PersonalSettings.RememberMe = e.SaveNameAndPassword;
+            settings.PersonalSettings.Password = e.SaveNameAndPassword ? e.Password : "";
             settingsService.Save(settings);
         }
         catch (Exception ex)
         {
-            await dialogService.ShowMessageBoxAsync("Error", $"Failed to sign in: {ex.Message}");
+            await dialogService.ShowMessageBoxAsync("Lỗi", $"Đăng nhập thất bại: {ex.Message}");
         }
     }
 
@@ -196,10 +206,93 @@ public partial class MainWindow : Window
         await viewer.ShowDialog(this);
     }
 
-    private async void AboutMenu_Click(object? sender, RoutedEventArgs e)
+    private async void BroadcastMenu_Click(object? sender, RoutedEventArgs e)
     {
-        var aboutWindow = new Windows.AboutWindow();
-        await aboutWindow.ShowDialog(this);
+        var chatClient = App.Services.GetRequiredService<IChatClient>();
+        var dialogService = App.Services.GetRequiredService<IDialogService>();
+
+        var broadcast = chatClient.StartBroadcastChat();
+        if (broadcast == null)
+        {
+            await dialogService.ShowMessageBoxAsync("CICMessenger",
+                FindTranslation("CreateRoom_NoContacts", "No contacts are online."));
+            return;
+        }
+
+        var window = new Windows.ChatWindow(broadcast,
+            FindTranslation("ChatWindow_BroadCastChatTitle", "Broadcast chat"));
+        window.Show();
+        window.Activate();
+    }
+
+    private async void CreateRoomMenu_Click(object? sender, RoutedEventArgs e)
+    {
+        var chatClient = App.Services.GetRequiredService<IChatClient>();
+        var dialogService = App.Services.GetRequiredService<IDialogService>();
+
+        var onlineBuddies = chatClient.Buddies.Where(b => b.IsOnline()).ToList();
+        if (onlineBuddies.Count == 0)
+        {
+            await dialogService.ShowMessageBoxAsync("CICMessenger",
+                FindTranslation("CreateRoom_NoContacts", "No contacts are online."));
+            return;
+        }
+
+        var picker = new Windows.CreateRoomWindow(onlineBuddies);
+        var selected = await picker.ShowDialog<System.Collections.Generic.List<IBuddy>?>(this);
+        if (selected == null || selected.Count == 0)
+            return;
+
+        // Start a session with the first member, then invite the rest into the same
+        // session — the core promotes it to a group chat as invitees join.
+        var chat = chatClient.StartChat(selected[0]);
+        foreach (var buddy in selected.Skip(1))
+            chat.Invite(buddy);
+
+        var windowManager = App.Services.GetRequiredService<ChatWindowManager>();
+        windowManager.OpenGroupRoom(selected[0], chat);
+    }
+
+    private async void UpdateMenu_Click(object? sender, RoutedEventArgs e)
+    {
+        var dialogService = App.Services.GetRequiredService<IDialogService>();
+        var updateService = new UpdateService();
+
+        try
+        {
+            var update = await updateService.CheckForUpdateAsync();
+            if (update == null)
+            {
+                await dialogService.ShowMessageBoxAsync("CICMessenger",
+                    FindTranslation("Update_UpToDate", "You are on the latest version."));
+                return;
+            }
+
+            var message = string.Format(
+                FindTranslation("Update_NewVersionFound", "New version {0} available. Download and update now?"),
+                update.TagName);
+            var result = await dialogService.ShowMessageBoxAsync("CICMessenger", message, MessageBoxButton.YesNo);
+            if (result != MessageBoxResult.Yes)
+                return;
+
+            await updateService.DownloadAndApplyAsync(update);
+
+            // The helper script replaces the exe after we exit
+            _forceClose = true;
+            Close();
+        }
+        catch (Exception)
+        {
+            await dialogService.ShowMessageBoxAsync("CICMessenger",
+                FindTranslation("Update_Failed", "Could not check for updates. Please check your connection."));
+        }
+    }
+
+    private string FindTranslation(string key, string fallback)
+    {
+        if (this.TryFindResource(key, out var value) && value is string s)
+            return s;
+        return fallback;
     }
 
     private void ChatClient_BuddyOnline(object? sender, BuddyOnlineEventArgs e)
@@ -209,8 +302,8 @@ public partial class MainWindow : Window
 
         Avalonia.Threading.Dispatcher.UIThread.Post(() =>
         {
-            _notificationService?.ShowNotification("Buddy Online",
-                $"{e.Buddy.DisplayName} is online");
+            _notificationService?.ShowNotification("Liên hệ trực tuyến",
+                $"{e.Buddy.DisplayName} đang trực tuyến");
         });
     }
 
@@ -221,15 +314,14 @@ public partial class MainWindow : Window
             var buddy = e.Buddies.FirstOrDefault();
             if (buddy != null)
             {
-                var chatWindow = new Windows.ChatWindow(buddy, e.Chat);
-                chatWindow.Show();
-                chatWindow.Activate();
+                var windowManager = App.Services.GetRequiredService<ChatWindowManager>();
+                windowManager.OpenOrFocus(buddy, e.Chat);
 
                 // Show notification if main window is not active
                 if (!IsActive)
                 {
                     _notificationService?.ShowMessageNotification(
-                        buddy.DisplayName, "Started a conversation");
+                        buddy.DisplayName, "Đã bắt đầu một cuộc trò chuyện");
                 }
             }
         });

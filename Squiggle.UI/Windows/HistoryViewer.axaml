@@ -1,7 +1,8 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="Squiggle.UI.Windows.HistoryViewer"
-        Title="History Viewer"
+        Icon="avares://CICMessenger/Assets/cic-logo.ico"
+        Title="Xem lịch sử"
         Width="620" Height="450"
         WindowStartupLocation="CenterOwner">
     <TabControl Margin="8">
@@ -50,9 +51,22 @@
 
         <!-- Status History Tab -->
         <TabItem Header="{DynamicResource HistoryViewer_StatusHistoryTab}">
-            <TextBlock Text="Status history will be available in a future update."
-                       HorizontalAlignment="Center" VerticalAlignment="Center"
-                       Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}" />
+            <Grid Margin="8" RowDefinitions="Auto,*">
+                <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8" Margin="0,4,0,8">
+                    <Button Content="{DynamicResource HistoryViewer_Search}" Click="RefreshStatus_Click" Classes="accent" />
+                </StackPanel>
+                <DataGrid Grid.Row="1" x:Name="statusGrid"
+                          IsReadOnly="True"
+                          CanUserSortColumns="True"
+                          CanUserResizeColumns="True"
+                          SelectionMode="Extended">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="{DynamicResource HistoryViewer_Results_Time}" Binding="{Binding Time}" Width="180" />
+                        <DataGridTextColumn Header="{DynamicResource HistoryViewer_Results_Name}" Binding="{Binding Name}" Width="*" />
+                        <DataGridTextColumn Header="{DynamicResource HistoryViewer_Results_Status}" Binding="{Binding Status}" Width="160" />
+                    </DataGrid.Columns>
+                </DataGrid>
+            </Grid>
         </TabItem>
     </TabControl>
 </Window>

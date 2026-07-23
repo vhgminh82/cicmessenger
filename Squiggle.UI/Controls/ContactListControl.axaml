@@ -54,6 +54,8 @@
                     <MenuItem Header="{DynamicResource Buddy_StartChat}" Click="StartChat_Click" />
                     <MenuItem Header="{DynamicResource Buddy_SendFile}" Click="SendFile_Click" />
                     <MenuItem Header="{DynamicResource Buddy_SendEmail}" Click="SendEmail_Click" />
+                    <Separator />
+                    <MenuItem Header="{DynamicResource Buddy_RemoveContact}" Click="RemoveContact_Click" />
                 </ContextMenu>
             </ListBox.ContextMenu>
         </ListBox>

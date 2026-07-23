@@ -1,11 +1,13 @@
 using System.Diagnostics;
 using System.Linq;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
 using Microsoft.Extensions.DependencyInjection;
 using Squiggle.Client;
+using Squiggle.UI.Services;
 using Squiggle.UI.ViewModel;
 using Squiggle.UI.Windows;
 
@@ -59,9 +61,8 @@ public partial class ContactListControl : UserControl
     private void OpenChatWindow(IBuddy buddy)
     {
         var chatClient = App.Services.GetRequiredService<IChatClient>();
-        var chat = chatClient.StartChat(buddy);
-        var chatWindow = new ChatWindow(buddy, chat);
-        chatWindow.Show();
+        var windowManager = App.Services.GetRequiredService<ChatWindowManager>();
+        windowManager.OpenOrFocus(buddy, () => chatClient.StartChat(buddy));
     }
 
     private async void SendFile_Click(object? sender, RoutedEventArgs e)
@@ -74,17 +75,16 @@ public partial class ContactListControl : UserControl
 
         var files = await topLevel.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
         {
-            Title = "Send File",
+            Title = "Gửi file",
             AllowMultiple = false
         });
 
         if (files.Count > 0)
         {
-            // Open chat window and inform user file transfer isn't yet connected
             var chatClient = App.Services.GetRequiredService<IChatClient>();
-            var chat = chatClient.StartChat(buddy);
-            var chatWindow = new ChatWindow(buddy, chat);
-            chatWindow.Show();
+            var windowManager = App.Services.GetRequiredService<ChatWindowManager>();
+            var chatWindow = windowManager.OpenOrFocus(buddy, () => chatClient.StartChat(buddy));
+            chatWindow.AddLocalFileMessage(files[0].Path.LocalPath);
         }
     }
 
@@ -99,4 +99,26 @@ public partial class ContactListControl : UserControl
             Process.Start(new ProcessStartInfo($"mailto:{email}") { UseShellExecute = true });
         }
     }
+
+    private async void RemoveContact_Click(object? sender, RoutedEventArgs e)
+    {
+        if (contactsList.SelectedItem is not IBuddy buddy)
+            return;
+
+        var chatClient = App.Services.GetRequiredService<IChatClient>();
+        if (!chatClient.RemoveBuddy(buddy))
+        {
+            var dialogService = App.Services.GetRequiredService<IDialogService>();
+            await dialogService.ShowMessageBoxAsync(
+                FindTranslation("Error", "Error"),
+                FindTranslation("Buddy_RemoveContact_StillOnline", "This contact is still online and can't be removed."));
+            return;
+        }
+
+        if (DataContext is ClientViewModel vm)
+            vm.Buddies.Remove(buddy);
+    }
+
+    private string FindTranslation(string key, string fallback)
+        => this.TryFindResource(key, out var value) && value is string s ? s : fallback;
 }
