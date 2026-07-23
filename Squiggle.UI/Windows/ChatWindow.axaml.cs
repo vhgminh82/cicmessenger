@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using Avalonia;
@@ -9,6 +10,9 @@ using Avalonia.Media;
 using Avalonia.Platform.Storage;
 using Microsoft.Extensions.DependencyInjection;
 using Squiggle.Client;
+using Squiggle.Client.Activities;
+using Squiggle.Core.Chat.Activity;
+using Squiggle.FileTransfer;
 using Squiggle.UI.Services;
 
 namespace Squiggle.UI.Windows;
@@ -73,9 +77,49 @@ public partial class ChatWindow : Window
         Title = $"Trò chuyện - {buddy.DisplayName}";
 
         messagesControl.ItemsSource = _messages;
+        LoadPreviousMessages(buddy);
 
         if (_chatSession != null)
             SetupChatSession();
+    }
+
+    /// <summary>
+    /// Repopulates the window with the recent conversation from the history database, so
+    /// reopening a chat (or restarting the app) doesn't present an empty window.
+    /// </summary>
+    private void LoadPreviousMessages(IBuddy buddy)
+    {
+        var history = App.Services.GetService<Squiggle.History.HistoryManager>();
+        var chatClient = App.Services.GetService<IChatClient>();
+        if (history == null)
+            return;
+
+        try
+        {
+            var selfId = chatClient?.CurrentUser.Id;
+            var youLabel = FindTranslation("Global_You", "You");
+
+            foreach (var evnt in history.GetRecentMessagesWithContact(buddy.Id))
+            {
+                bool isOwn = selfId != null && evnt.SenderId == selfId;
+                _messages.Add(new ChatMessage
+                {
+                    SenderName = isOwn ? youLabel : evnt.SenderName,
+                    Text = evnt.Data,
+                    Timestamp = evnt.Stamp.ToLocalTime().ToString("dd/MM HH:mm"),
+                    Background = new SolidColorBrush(Color.Parse(isOwn ? "#DCF8C6" : "#E3F2FD")),
+                    IsOwn = isOwn
+                });
+            }
+
+            if (_messages.Count > 0)
+                Avalonia.Threading.Dispatcher.UIThread.Post(ScrollToBottom,
+                    Avalonia.Threading.DispatcherPriority.Loaded);
+        }
+        catch
+        {
+            // History is a convenience — never block opening the chat window over it
+        }
     }
 
     /// <summary>
@@ -101,6 +145,7 @@ public partial class ChatWindow : Window
         _chatSession.BuddyJoined += ChatSession_BuddyJoined;
         _chatSession.BuddyLeft += ChatSession_BuddyLeft;
         _chatSession.MessageFailed += ChatSession_MessageFailed;
+        _chatSession.ActivityInvitationReceived += ChatSession_ActivityInvitationReceived;
     }
 
     private void DetachChatSession()
@@ -113,6 +158,7 @@ public partial class ChatWindow : Window
         _chatSession.BuddyJoined -= ChatSession_BuddyJoined;
         _chatSession.BuddyLeft -= ChatSession_BuddyLeft;
         _chatSession.MessageFailed -= ChatSession_MessageFailed;
+        _chatSession.ActivityInvitationReceived -= ChatSession_ActivityInvitationReceived;
     }
 
     public void SetChatSession(IChat chat)
@@ -236,6 +282,15 @@ public partial class ChatWindow : Window
             IsOwn = true
         });
 
+        // Tell the user the message is parked rather than lost when the peer is away
+        if (_buddy != null && !_buddy.IsOnline())
+        {
+            AddSystemMessage(string.Format(
+                FindTranslation("ChatWindow_QueuedForOffline",
+                    "{0} is offline. The message will be sent when they come back online."),
+                _buddy.DisplayName));
+        }
+
         _chatSession?.SendMessage(
             Guid.NewGuid(),
             "Segoe UI",
@@ -278,67 +333,227 @@ public partial class ChatWindow : Window
         });
 
         if (files.Count > 0)
-            AddLocalFileMessage(files[0].Path.LocalPath);
+            SendFile(files[0].Path.LocalPath);
     }
 
     private static readonly string[] ImageExtensions = { ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".webp" };
     private static readonly string[] VideoExtensions = { ".mp4", ".avi", ".mov", ".mkv", ".webm", ".wmv" };
 
+    static bool IsImage(string path) => ImageExtensions.Contains(System.IO.Path.GetExtension(path).ToLowerInvariant());
+    static bool IsVideo(string path) => VideoExtensions.Contains(System.IO.Path.GetExtension(path).ToLowerInvariant());
+
     /// <summary>
-    /// Adds a locally-picked file to the conversation, rendering an inline preview for
-    /// images/videos. Note: P2P file transfer isn't wired up yet, so this only previews
-    /// the file in the sender's own window — it is not actually sent to the peer.
+    /// Sends a file to the peer over the activity channel and shows it in our own
+    /// transcript (with an inline preview for images and videos).
     /// </summary>
-    public void AddLocalFileMessage(string filePath)
+    public void SendFile(string filePath)
     {
         var fileName = System.IO.Path.GetFileName(filePath);
-        var ext = System.IO.Path.GetExtension(filePath).ToLowerInvariant();
 
-        if (ImageExtensions.Contains(ext))
+        if (_chatSession == null)
         {
-            Avalonia.Media.Imaging.Bitmap? bitmap = null;
-            try
-            {
-                bitmap = new Avalonia.Media.Imaging.Bitmap(filePath);
-            }
-            catch
-            {
-                AddSystemMessage($"{FindTranslation("ChatWindow_CouldNotReadFile", "Could not read file")} {fileName}");
-                return;
-            }
-
-            _messages.Add(new ChatMessage
-            {
-                SenderName = FindTranslation("Global_You", "You"),
-                Text = fileName,
-                Timestamp = DateTime.Now.ToString("HH:mm"),
-                Background = new SolidColorBrush(Color.Parse("#DCF8C6")),
-                Kind = ChatMessageKind.Image,
-                FilePath = filePath,
-                ImageSource = bitmap,
-                IsOwn = true
-            });
-        }
-        else if (VideoExtensions.Contains(ext))
-        {
-            _messages.Add(new ChatMessage
-            {
-                SenderName = FindTranslation("Global_You", "You"),
-                Text = fileName,
-                Timestamp = DateTime.Now.ToString("HH:mm"),
-                Background = new SolidColorBrush(Color.Parse("#DCF8C6")),
-                Kind = ChatMessageKind.Video,
-                FilePath = filePath,
-                IsOwn = true
-            });
-        }
-        else
-        {
-            AddSystemMessage($"Chưa hỗ trợ gửi loại file này: {fileName}");
+            AddSystemMessage(FindTranslation("ChatWindow_FileTransferNoSession", "Chưa có phiên trò chuyện để gửi file."));
             return;
         }
 
+        if (_chatSession.IsGroupChat)
+        {
+            AddSystemMessage(FindTranslation("ChatWindow_FileTransferNotAllowedInGroup",
+                "Không thể truyền file trong cuộc trò chuyện nhóm."));
+            return;
+        }
+
+        if (_buddy != null && !_buddy.IsOnline())
+        {
+            AddSystemMessage(string.Format(
+                FindTranslation("ChatWindow_FileTransferPeerOffline",
+                    "{0} đang ngoại tuyến nên chưa gửi được file."),
+                _buddy.DisplayName));
+            return;
+        }
+
+        try
+        {
+            var info = new System.IO.FileInfo(filePath);
+            var content = System.IO.File.OpenRead(filePath);
+
+            var executor = _chatSession.CreateActivity(SquiggleActivities.FileTransfer);
+            var handler = new FileTransferActivity().CreateInvite(executor, new Dictionary<string, object>
+            {
+                ["content"] = content,
+                ["name"] = info.Name,
+                ["size"] = info.Length
+            });
+
+            AddOutgoingFileMessage(filePath, fileName);
+            AttachTransferFeedback(handler, fileName, sending: true, savedPath: null, disposeOnFinish: content);
+            handler.Start();
+        }
+        catch (Exception ex)
+        {
+            AddSystemMessage($"{FindTranslation("ChatWindow_CouldNotReadFile", "Không đọc được file")} {fileName}: {ex.Message}");
+        }
+    }
+
+    private void AddOutgoingFileMessage(string filePath, string fileName)
+    {
+        var kind = IsImage(filePath) ? ChatMessageKind.Image
+                 : IsVideo(filePath) ? ChatMessageKind.Video
+                 : ChatMessageKind.Text;
+
+        Avalonia.Media.Imaging.Bitmap? bitmap = null;
+        if (kind == ChatMessageKind.Image)
+            try { bitmap = new Avalonia.Media.Imaging.Bitmap(filePath); } catch { kind = ChatMessageKind.Text; }
+
+        _messages.Add(new ChatMessage
+        {
+            SenderName = FindTranslation("Global_You", "You"),
+            Text = fileName,
+            Timestamp = DateTime.Now.ToString("HH:mm"),
+            Background = new SolidColorBrush(Color.Parse("#DCF8C6")),
+            Kind = kind,
+            FilePath = filePath,
+            ImageSource = bitmap,
+            IsOwn = true
+        });
         ScrollToBottom();
+    }
+
+    /// <summary>
+    /// Reports transfer progress and outcome as system messages, and shows the received
+    /// file inline once it has fully arrived.
+    /// </summary>
+    private void AttachTransferFeedback(IActivityHandler handler, string fileName, bool sending,
+                                        string? savedPath, System.IO.Stream? disposeOnFinish)
+    {
+        handler.TransferCompleted += (_, _) =>
+        {
+            if (sending)
+            {
+                AddSystemMessage(string.Format(
+                    FindTranslation("ChatWindow_FileSent", "Đã gửi file: {0}"), fileName));
+            }
+            else if (savedPath != null)
+            {
+                AddSystemMessage(string.Format(
+                    FindTranslation("ChatWindow_FileReceived", "Đã nhận file: {0}"), savedPath));
+                Avalonia.Threading.Dispatcher.UIThread.Post(() => AddIncomingFileMessage(savedPath, fileName));
+            }
+        };
+
+        handler.TransferCancelled += (_, _) => AddSystemMessage(string.Format(
+            FindTranslation("ChatWindow_FileCancelled", "Đã hủy truyền file: {0}"), fileName));
+
+        handler.Error += (_, args) => AddSystemMessage(string.Format(
+            FindTranslation("ChatWindow_FileFailed", "Lỗi truyền file {0}: {1}"), fileName, args.GetException().Message));
+
+        handler.TransferFinished += (_, _) => disposeOnFinish?.Dispose();
+    }
+
+    private void AddIncomingFileMessage(string savedPath, string fileName)
+    {
+        var kind = IsImage(savedPath) ? ChatMessageKind.Image
+                 : IsVideo(savedPath) ? ChatMessageKind.Video
+                 : ChatMessageKind.Text;
+
+        Avalonia.Media.Imaging.Bitmap? bitmap = null;
+        if (kind == ChatMessageKind.Image)
+            try { bitmap = new Avalonia.Media.Imaging.Bitmap(savedPath); } catch { kind = ChatMessageKind.Text; }
+
+        if (kind == ChatMessageKind.Text)
+            return; // plain files already announced via the system message
+
+        _messages.Add(new ChatMessage
+        {
+            SenderName = _buddy?.DisplayName ?? "",
+            Text = fileName,
+            Timestamp = DateTime.Now.ToString("HH:mm"),
+            Background = new SolidColorBrush(Color.Parse("#E3F2FD")),
+            Kind = kind,
+            FilePath = savedPath,
+            ImageSource = bitmap,
+            IsOwn = false
+        });
+        ScrollToBottom();
+    }
+
+    /// <summary>
+    /// Handles an incoming file offer: asks the user, then streams it into the downloads
+    /// folder under a non-colliding name.
+    /// </summary>
+    private void ChatSession_ActivityInvitationReceived(object? sender, ActivityInvitationReceivedEventArgs e)
+    {
+        if (e.ActivityId != SquiggleActivities.FileTransfer)
+            return;
+
+        var handler = new FileTransferActivity().FromInvite(e.Executor, e.Metadata);
+        if (handler is not IFileTransferHandler transfer)
+            return;
+
+        Avalonia.Threading.Dispatcher.UIThread.Post(async () =>
+        {
+            var dialogService = App.Services.GetRequiredService<IDialogService>();
+            var prompt = string.Format(
+                FindTranslation("ChatWindow_FileOffer", "{0} muốn gửi cho bạn file \"{1}\" ({2}). Bạn có nhận không?"),
+                e.Buddy.DisplayName, transfer.Name, FormatSize(transfer.Size));
+
+            var answer = await dialogService.ShowMessageBoxAsync("CICMessenger", prompt, MessageBoxButton.YesNo);
+            if (answer != MessageBoxResult.Yes)
+            {
+                transfer.Cancel();
+                AddSystemMessage(string.Format(
+                    FindTranslation("ChatWindow_FileRejected", "Đã từ chối nhận file: {0}"), transfer.Name));
+                return;
+            }
+
+            var savePath = BuildDownloadPath(transfer.Name);
+            AttachTransferFeedback(transfer, transfer.Name, sending: false, savedPath: savePath, disposeOnFinish: null);
+            AddSystemMessage(string.Format(
+                FindTranslation("ChatWindow_FileReceiving", "Đang nhận file: {0}"), transfer.Name));
+            transfer.Accept(savePath);
+        });
+    }
+
+    /// <summary>
+    /// Picks a writable, non-colliding path inside the configured downloads folder.
+    /// The file name has already had any directory part stripped by FileInviteData.
+    /// </summary>
+    private static string BuildDownloadPath(string fileName)
+    {
+        var settings = App.Services.GetRequiredService<SettingsService>().Load();
+        var folder = settings.GeneralSettings.DownloadsFolder;
+
+        if (string.IsNullOrWhiteSpace(folder) || !System.IO.Directory.Exists(folder))
+            folder = System.IO.Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
+
+        System.IO.Directory.CreateDirectory(folder);
+
+        var safeName = System.IO.Path.GetFileName(fileName);
+        if (string.IsNullOrWhiteSpace(safeName))
+            safeName = "received_file";
+
+        var candidate = System.IO.Path.Combine(folder, safeName);
+        var baseName = System.IO.Path.GetFileNameWithoutExtension(safeName);
+        var ext = System.IO.Path.GetExtension(safeName);
+        int counter = 1;
+        while (System.IO.File.Exists(candidate))
+            candidate = System.IO.Path.Combine(folder, $"{baseName} ({counter++}){ext}");
+
+        return candidate;
+    }
+
+    private static string FormatSize(long bytes)
+    {
+        string[] units = { "B", "KB", "MB", "GB" };
+        double size = bytes;
+        int unit = 0;
+        while (size >= 1024 && unit < units.Length - 1)
+        {
+            size /= 1024;
+            unit++;
+        }
+        return $"{size:0.#} {units[unit]}";
     }
 
     private void PlayVideo_Click(object? sender, RoutedEventArgs e)
@@ -353,6 +568,54 @@ public partial class ChatWindow : Window
             {
                 AddSystemMessage($"{FindTranslation("ChatWindow_CouldNotReadFile", "Could not read file")} {System.IO.Path.GetFileName(filePath)}");
             }
+        }
+    }
+
+    /// <summary>
+    /// Hides this window, lets the user rubber-band a region of the desktop, then sends
+    /// the cropped image as a PNG.
+    /// </summary>
+    private async void Screenshot_Click(object? sender, RoutedEventArgs e)
+    {
+        var picker = ScreenRegionPicker.TryCreate();
+        if (picker == null)
+        {
+            AddSystemMessage(FindTranslation("ChatWindow_ScreenshotFailed", "Không chụp được màn hình."));
+            return;
+        }
+
+        // Get our own window out of the shot before the overlay appears
+        var wasVisible = IsVisible;
+        Hide();
+        await System.Threading.Tasks.Task.Delay(180);
+
+        Avalonia.Media.Imaging.WriteableBitmap? shot;
+        try
+        {
+            shot = await picker.ShowDialog<Avalonia.Media.Imaging.WriteableBitmap?>(this);
+        }
+        finally
+        {
+            if (wasVisible)
+            {
+                Show();
+                Activate();
+            }
+        }
+
+        if (shot == null)
+            return;
+
+        try
+        {
+            var path = System.IO.Path.Combine(System.IO.Path.GetTempPath(),
+                $"CICMessenger-screenshot-{DateTime.Now:yyyyMMdd-HHmmss}.png");
+            shot.Save(path);
+            SendFile(path);
+        }
+        catch (Exception ex)
+        {
+            AddSystemMessage($"{FindTranslation("ChatWindow_ScreenshotFailed", "Không chụp được màn hình.")} {ex.Message}");
         }
     }
 

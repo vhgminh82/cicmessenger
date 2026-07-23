@@ -136,6 +136,8 @@ Bạn có chắc chắn muốn đóng cửa sổ này không?</sys:String>
     <sys:String x:Key="ChatWindow_ShowInFolder">Hiển thị trong thư mục</sys:String>
     <sys:String x:Key="ChatWindow_IsTyping">đang nhập...</sys:String>
     <sys:String x:Key="ChatWindow_MessageCouldNotBeDelivered">Tin nhắn sau không thể gửi tới một số người nhận:</sys:String>
+    <sys:String x:Key="ChatWindow_QueuedForOffline">{0} hiện ngoại tuyến. Tin nhắn sẽ được gửi khi họ trực tuyến trở lại (máy bạn cần đang mở).</sys:String>
+    <sys:String x:Key="ChatWindow_QueuedMessagesDelivered">Đã gửi {0} tin nhắn đang chờ.</sys:String>
     <sys:String x:Key="ChatWindow_HasJoinedConversation">đã tham gia cuộc trò chuyện.</sys:String>
     <sys:String x:Key="ChatWindow_HasLeftConversation">đã rời khỏi cuộc trò chuyện.</sys:String>
     <sys:String x:Key="ChatWindow_HasSentYouBuzz">đã gửi cho bạn một tin nhắn rung.</sys:String>
@@ -166,6 +168,17 @@ Bạn có chắc chắn muốn đóng cửa sổ này không?</sys:String>
     <sys:String x:Key="FileTransfer_Sending">Đang gửi</sys:String>
     <sys:String x:Key="FileTransfer_Receiving">Đang nhận</sys:String>
     <sys:String x:Key="FileTransfer_SaveAs">Lưu thành</sys:String>
+    <sys:String x:Key="ChatWindow_FileOffer">{0} muốn gửi cho bạn file "{1}" ({2}). Bạn có nhận không?</sys:String>
+    <sys:String x:Key="ChatWindow_FileReceiving">Đang nhận file: {0}</sys:String>
+    <sys:String x:Key="ChatWindow_FileRejected">Đã từ chối nhận file: {0}</sys:String>
+    <sys:String x:Key="ChatWindow_FileSent">Đã gửi file: {0}</sys:String>
+    <sys:String x:Key="ChatWindow_FileReceived">Đã nhận file: {0}</sys:String>
+    <sys:String x:Key="ChatWindow_FileCancelled">Đã hủy truyền file: {0}</sys:String>
+    <sys:String x:Key="ChatWindow_FileFailed">Lỗi truyền file {0}: {1}</sys:String>
+    <sys:String x:Key="ChatWindow_FileTransferNoSession">Chưa có phiên trò chuyện để gửi file.</sys:String>
+    <sys:String x:Key="ChatWindow_FileTransferPeerOffline">{0} đang ngoại tuyến nên chưa gửi được file.</sys:String>
+    <sys:String x:Key="ChatWindow_ScreenshotFailed">Không chụp được màn hình.</sys:String>
+    <sys:String x:Key="ChatWindow_SendScreenshot">Chụp màn hình và gửi</sys:String>
     <sys:String x:Key="FileTransfer_Open">Mở</sys:String>
     <sys:String x:Key="Activity_Waiting">Đang chờ {0} chấp nhận hoạt động {1}</sys:String>
     <sys:String x:Key="Activity_Invitation">{0} muốn bắt đầu hoạt động {1} với bạn</sys:String>

@@ -51,13 +51,83 @@ namespace Squiggle.Client
 
         public bool EnableLogging { get; set; }
 
-        public ChatClient(string clientId, HistoryManager history, ILoggerFactory? loggerFactory = null)
+        readonly OfflineMessageStore? offlineStore;
+
+        /// <summary>
+        /// Raised after messages queued while a buddy was offline have been delivered.
+        /// </summary>
+        public event EventHandler<OfflineMessagesDeliveredEventArgs> OfflineMessagesDelivered = delegate { };
+
+        public ChatClient(string clientId, HistoryManager history, ILoggerFactory? loggerFactory = null, OfflineMessageStore? offlineStore = null)
         {
             this.history = history;
             this.loggerFactory = loggerFactory ?? NullLoggerFactory.Instance;
+            this.offlineStore = offlineStore;
             buddies = new BuddyList();
             CurrentUser = new SelfBuddy(this, clientId, String.Empty, UserStatus.Offline, new BuddyProperties());
-        }        
+        }
+
+        public bool HasPendingMessages(string buddyId) => offlineStore?.HasPending(buddyId) ?? false;
+
+        public int PendingMessageCount(string buddyId) => offlineStore?.PendingCount(buddyId) ?? 0;
+
+        Chat CreateChat(IChatSession session, IEnumerable<IBuddy> buddyList)
+        {
+            var chat = new Chat(session, CurrentUser, buddyList, id => buddies[id], history)
+            {
+                EnableLogging = EnableLogging
+            };
+
+            if (offlineStore != null)
+                chat.MessageUndelivered = offlineStore.Enqueue;
+
+            return chat;
+        }
+
+        /// <summary>
+        /// Sends anything that was queued while this buddy was offline, oldest first.
+        /// </summary>
+        void FlushOfflineMessages(IBuddy buddy)
+        {
+            if (offlineStore == null || !offlineStore.HasPending(buddy.Id))
+                return;
+
+            var queued = offlineStore.Dequeue(buddy.Id);
+            if (queued.Count == 0)
+                return;
+
+            var delivered = new List<PendingMessage>();
+            var failed = new List<PendingMessage>();
+
+            ExceptionMonster.EatTheException(() =>
+            {
+                IChatSession session = chatService.CreateSession(new SquiggleEndPoint(buddy.Id, ((Buddy)buddy).ChatEndPoint));
+                foreach (var pending in queued)
+                {
+                    if (ExceptionMonster.EatTheException(
+                            () => session.SendMessage(Guid.NewGuid(), "Segoe UI", 12,
+                                                      System.Drawing.Color.Black,
+                                                      System.Drawing.FontStyle.Regular,
+                                                      pending.Text),
+                            "delivering queued offline message"))
+                        delivered.Add(pending);
+                    else
+                        failed.Add(pending);
+                }
+            }, "flushing offline messages for " + buddy.Id);
+
+            // Anything still undelivered goes back on the queue for the next time
+            var undelivered = failed.Concat(queued.Except(delivered).Except(failed)).ToList();
+            if (undelivered.Count > 0)
+                offlineStore.Requeue(undelivered);
+
+            if (delivered.Count > 0)
+                OfflineMessagesDelivered(this, new OfflineMessagesDeliveredEventArgs
+                {
+                    Buddy = buddy,
+                    Count = delivered.Count
+                });
+        }
 
         public IChat StartChat(IBuddy buddy)
         {
@@ -65,9 +135,7 @@ namespace Squiggle.Client
                 throw new InvalidOperationException("Not logged in.");
 
             IChatSession session = chatService.CreateSession(new SquiggleEndPoint(buddy.Id, ((Buddy)buddy).ChatEndPoint));
-            var chat = new Chat(session, CurrentUser, new[]{ buddy }, id=>buddies[id], history);
-            chat.EnableLogging = EnableLogging;
-            return chat;
+            return CreateChat(session, new[] { buddy });
         }        
 
         public void Login(LoginOptions options)
@@ -167,8 +235,7 @@ namespace Squiggle.Client
             
             if (buddyList.Any())
             {
-                var chat = new Chat(e.Session, CurrentUser, buddyList, id=>buddies[id], history);
-                chat.EnableLogging = EnableLogging;
+                var chat = CreateChat(e.Session, buddyList);
                 ChatStarted(this, new ChatStartedEventArgs() { Chat = chat, Buddies = buddyList });
             }
         }
@@ -225,6 +292,11 @@ namespace Squiggle.Client
             if (!discovered)
                 LogStatus(buddy);
             BuddyOnline(this, new BuddyOnlineEventArgs() { Buddy = buddy, Discovered = discovered });
+
+            // Deliver anything typed while they were away. Off the event thread so a slow
+            // or failing peer can't stall presence handling.
+            if (offlineStore != null && offlineStore.HasPending(buddy.Id))
+                System.Threading.Tasks.Task.Run(() => FlushOfflineMessages(buddy));
         }
 
         void OnBuddyOffline(IBuddy buddy)

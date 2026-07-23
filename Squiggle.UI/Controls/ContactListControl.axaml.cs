@@ -84,7 +84,7 @@ public partial class ContactListControl : UserControl
             var chatClient = App.Services.GetRequiredService<IChatClient>();
             var windowManager = App.Services.GetRequiredService<ChatWindowManager>();
             var chatWindow = windowManager.OpenOrFocus(buddy, () => chatClient.StartChat(buddy));
-            chatWindow.AddLocalFileMessage(files[0].Path.LocalPath);
+            chatWindow.SendFile(files[0].Path.LocalPath);
         }
     }
 

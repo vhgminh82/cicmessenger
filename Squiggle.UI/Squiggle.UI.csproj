@@ -4,7 +4,22 @@
     <RootNamespace>Squiggle.UI</RootNamespace>
     <AssemblyName>CICMessenger</AssemblyName>
     <ApplicationIcon>Assets\cic-logo.ico</ApplicationIcon>
+    <!-- Needed for the pointer-based pixel copy in ScreenCapture -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+
+    <!-- Desktop chat app: favour a small memory footprint over throughput.
+         Referencing Microsoft.AspNetCore.App (for the gRPC chat host) otherwise
+         pulls in server-oriented GC defaults. -->
+    <ServerGarbageCollection>false</ServerGarbageCollection>
+    <ConcurrentGarbageCollection>false</ConcurrentGarbageCollection>
+    <RetainVMGarbageCollection>false</RetainVMGarbageCollection>
+    <TieredPGO>true</TieredPGO>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- 0-9; higher trades a little CPU for a smaller managed heap -->
+    <RuntimeHostConfigurationOption Include="System.GC.Conserve" Value="5" Trim="true" />
+  </ItemGroup>
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
@@ -26,6 +41,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Squiggle.Client\Squiggle.Client.csproj" />
+    <ProjectReference Include="..\Squiggle.FileTransfer\Squiggle.FileTransfer.csproj" />
     <ProjectReference Include="..\Squiggle.Core\Squiggle.Core.csproj" />
     <ProjectReference Include="..\Squiggle.History\Squiggle.History.csproj" />
     <ProjectReference Include="..\Squiggle.Infrastructure\Squiggle.Infrastructure.csproj" />

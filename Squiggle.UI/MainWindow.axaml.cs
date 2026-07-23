@@ -42,6 +42,9 @@ public partial class MainWindow : Window
         chatClient.ChatStarted += ChatClient_ChatStarted;
         chatClient.BuddyOnline += ChatClient_BuddyOnline;
 
+        if (chatClient is ChatClient concreteClient)
+            concreteClient.OfflineMessagesDelivered += ChatClient_OfflineMessagesDelivered;
+
         // Pre-populate sign-in form with saved settings
         var settingsService = App.Services.GetRequiredService<SettingsService>();
         var settings = settingsService.Load();
@@ -304,6 +307,17 @@ public partial class MainWindow : Window
         {
             _notificationService?.ShowNotification("Liên hệ trực tuyến",
                 $"{e.Buddy.DisplayName} đang trực tuyến");
+        });
+    }
+
+    private void ChatClient_OfflineMessagesDelivered(object? sender, OfflineMessagesDeliveredEventArgs e)
+    {
+        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        {
+            _notificationService?.ShowNotification("CICMessenger",
+                string.Format(
+                    FindTranslation("ChatWindow_QueuedMessagesDelivered", "Delivered {0} queued message(s)."),
+                    e.Count) + $" ({e.Buddy.DisplayName})");
         });
     }
 

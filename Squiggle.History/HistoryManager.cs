@@ -40,6 +40,16 @@ namespace Squiggle.History
                 repository.AddStatusUpdate(DateTime.UtcNow, contactId, contactName, status);
         }
 
+        /// <summary>
+        /// Most recent messages exchanged with a contact, oldest first, so a reopened chat
+        /// window can show the conversation instead of starting blank.
+        /// </summary>
+        public IEnumerable<Event> GetRecentMessagesWithContact(string contactId, int limit = 50)
+        {
+            using (HistoryRepository repository = this.CreateRepository())
+                return repository.GetRecentMessagesWithContact(contactId, limit);
+        }
+
         public IEnumerable<Session> GetSessions(SessionCriteria criteria)
         {
             using (HistoryRepository repository = this.CreateRepository())

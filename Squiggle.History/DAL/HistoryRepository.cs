@@ -37,6 +37,24 @@ namespace Squiggle.History.DAL
             }
         }
 
+        /// <summary>
+        /// Returns the most recent chat messages exchanged with a contact, across all past
+        /// sessions, oldest first — used to repopulate a chat window when it is reopened.
+        /// </summary>
+        public IEnumerable<Event> GetRecentMessagesWithContact(string contactId, int limit)
+        {
+            var messages = (from evnt in context.Events.Include(e => e.Session).ThenInclude(s => s.Participants)
+                            where evnt.TypeCode == (int)EventType.Message
+                                  && evnt.Session.Participants.Any(p => p.ContactId == contactId)
+                            orderby evnt.Stamp descending
+                            select evnt)
+                           .Take(limit)
+                           .ToList();
+
+            messages.Reverse();
+            return messages;
+        }
+
         public IEnumerable<Session> GetSessions(SessionCriteria criteria)
         {
             string text = criteria.Text ?? String.Empty;

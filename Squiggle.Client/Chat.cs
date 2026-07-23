@@ -26,6 +26,12 @@ namespace Squiggle.Client
         IBuddy self;
         HistoryManager history;
 
+        /// <summary>
+        /// Called with (buddyId, messageText) when a message could not be delivered, so the
+        /// client can hold it until that buddy comes back online.
+        /// </summary>
+        public Action<string, string>? MessageUndelivered { get; set; }
+
         public Chat(IChatSession session, IBuddy self, IEnumerable<IBuddy> buddies, BuddyResolver buddyResolver, HistoryManager history)
         {
             this.self = self;
@@ -73,16 +79,39 @@ namespace Squiggle.Client
         {
             Task.Run(() =>
             {
+                // Don't even attempt delivery to buddies that are known to be offline —
+                // the connection attempt would just stall until it times out.
+                var offlineBuddies = Buddies.Where(b => !b.IsOnline()).ToList();
+                var onlineBuddies = Buddies.Where(b => b.IsOnline()).ToList();
+
+                foreach (var buddy in offlineBuddies)
+                    MessageUndelivered?.Invoke(buddy.Id, message);
+
+                if (onlineBuddies.Count == 0)
+                {
+                    LogHistory(EventType.Message, self, message);
+                    return;
+                }
+
                 Exception? ex;
                 if (!ExceptionMonster.EatTheException(()=>
                                     {
-                                        session.SendMessage(id, fontName, fontSize, color, fontStyle, message);                    
+                                        session.SendMessage(id, fontName, fontSize, color, fontStyle, message);
                                     }, "sending chat message", out ex))
-                    MessageFailed(this, new MessageFailedEventArgs()
-                    {
-                        Message = message,
-                        Exception = ex!
-                    });
+                {
+                    // Delivery failed even though the peer looked online (it may have just
+                    // dropped off) — queue it rather than losing the message.
+                    if (MessageUndelivered != null)
+                        foreach (var buddy in onlineBuddies)
+                            MessageUndelivered(buddy.Id, message);
+                    else
+                        MessageFailed(this, new MessageFailedEventArgs()
+                        {
+                            Message = message,
+                            Exception = ex!
+                        });
+                }
+
                 LogHistory(EventType.Message, self, message);
             });
         }

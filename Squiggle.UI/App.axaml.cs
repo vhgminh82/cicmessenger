@@ -68,10 +68,13 @@ public partial class App : Application
         var historyManager = new HistoryManager($"Data Source={dbPath}");
         services.AddSingleton(historyManager);
 
+        var offlineStore = new OfflineMessageStore(Path.Combine(dataFolder, "pending-messages.json"));
+        services.AddSingleton(offlineStore);
+
         services.AddSingleton<IChatClient>(provider =>
         {
             var loggerFactory = provider.GetRequiredService<ILoggerFactory>();
-            return new ChatClient(SettingsService.GetOrCreateClientId(), historyManager, loggerFactory);
+            return new ChatClient(SettingsService.GetOrCreateClientId(), historyManager, loggerFactory, offlineStore);
         });
 
         // Plugins

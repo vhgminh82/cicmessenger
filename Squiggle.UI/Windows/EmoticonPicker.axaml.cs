@@ -19,6 +19,14 @@ public partial class EmoticonPicker : Window
     {
         InitializeComponent();
         BuildEmoticonGrid();
+
+        // Close when the window itself is deactivated. Using OnLostFocus here would fire
+        // as soon as focus moved to an emoji button, cancelling the pick before it landed.
+        Deactivated += (_, _) =>
+        {
+            if (SelectedEmoticon == null)
+                Close(null);
+        };
     }
 
     private void BuildEmoticonGrid()
@@ -49,9 +57,4 @@ public partial class EmoticonPicker : Window
         }
     }
 
-    protected override void OnLostFocus(Avalonia.Interactivity.RoutedEventArgs e)
-    {
-        base.OnLostFocus(e);
-        Close(null);
-    }
 }

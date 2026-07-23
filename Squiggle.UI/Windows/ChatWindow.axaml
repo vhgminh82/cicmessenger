@@ -97,8 +97,12 @@
                     <TextBlock Text="📎" FontSize="16" />
                 </Button>
                 <Button ToolTip.Tip="{DynamicResource Emoticon_Smile}" Click="Emoticon_Click"
-                        Padding="6,2">
+                        Padding="6,2" Margin="0,0,4,0">
                     <TextBlock Text="😊" FontSize="16" />
+                </Button>
+                <Button ToolTip.Tip="{DynamicResource ChatWindow_SendScreenshot}" Click="Screenshot_Click"
+                        Padding="6,2">
+                    <TextBlock Text="🖼" FontSize="16" />
                 </Button>
             </StackPanel>
 
