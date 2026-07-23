@@ -164,14 +164,11 @@ public partial class ChatWindow : Window
         if (ReferenceEquals(_chatSession, chat))
             return;
 
-        var previous = _chatSession;
+        // Only detach — do not Leave() the old session. The peer may still be using it,
+        // and tearing it down mid-conversation breaks in-flight transfers.
         DetachChatSession();
         _chatSession = chat;
         SetupChatSession();
-
-        // Leave the session we're replacing, otherwise it lingers on both peers
-        if (previous != null)
-            Squiggle.Utilities.ExceptionMonster.EatTheException(previous.Leave, "leaving replaced chat session.");
     }
 
     private void ChatSession_MessageReceived(object? sender, ChatMessageReceivedEventArgs e)
