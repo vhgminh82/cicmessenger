@@ -1,0 +1,36 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="CICMessenger.UI.Windows.ToastNotificationWindow"
+        SystemDecorations="None"
+        ShowInTaskbar="False"
+        Topmost="True"
+        CanResize="False"
+        WindowStartupLocation="Manual"
+        SizeToContent="Manual"
+        Width="320" Height="84"
+        Background="Transparent"
+        TransparencyLevelHint="Transparent">
+    <Border Background="#2B2D30"
+            CornerRadius="8"
+            BoxShadow="0 2 12 0 #40000000"
+            Cursor="Hand"
+            PointerPressed="Root_PointerPressed">
+        <Grid Margin="14,10" ColumnDefinitions="Auto,*,Auto">
+            <Border Grid.Column="0" Width="36" Height="36" CornerRadius="18"
+                    Background="#3D7EFF" VerticalAlignment="Top">
+                <TextBlock Text="CIC" FontSize="11" FontWeight="Bold"
+                           Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Border>
+            <StackPanel Grid.Column="1" Margin="10,0,4,0" VerticalAlignment="Center">
+                <TextBlock x:Name="titleText" FontSize="13" FontWeight="SemiBold"
+                           Foreground="White" TextTrimming="CharacterEllipsis" />
+                <TextBlock x:Name="messageText" FontSize="12" Margin="0,2,0,0"
+                           Foreground="#CCFFFFFF" TextWrapping="Wrap" MaxLines="2"
+                           TextTrimming="CharacterEllipsis" />
+            </StackPanel>
+            <Button Grid.Column="2" Content="✕" Padding="4,2" FontSize="10"
+                    Background="Transparent" BorderThickness="0" Foreground="#99FFFFFF"
+                    VerticalAlignment="Top" Click="Close_Click" />
+        </Grid>
+    </Border>
+</Window>

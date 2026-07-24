@@ -9,6 +9,7 @@ using Avalonia.Interactivity;
 using CICMessenger.Client;
 using CICMessenger.Core.Presence;
 using CICMessenger.UI.Controls;
+using CICMessenger.UI.Models;
 using CICMessenger.UI.Services;
 using CICMessenger.UI.ViewModel;
 using Microsoft.Extensions.DependencyInjection;
@@ -20,7 +21,12 @@ public partial class MainWindow : Window
     private ClientViewModel? _viewModel;
     private ITrayIconService? _trayIconService;
     private INotificationService? _notificationService;
+    private ConversationCoordinator? _conversations;
     private bool _forceClose;
+
+    /// <summary>Conversation key ("buddy:id" / "room:id") currently shown in the middle pane, or null.</summary>
+    private string? _currentConversationKey;
+    private Room? _currentRoom;
 
     public MainWindow()
     {
@@ -38,19 +44,29 @@ public partial class MainWindow : Window
 
         signInControl.LoginRequested += SignInControl_LoginRequested;
 
-        // Wire up incoming chat sessions and buddy notifications
-        chatClient.ChatStarted += ChatClient_ChatStarted;
         chatClient.BuddyOnline += ChatClient_BuddyOnline;
 
         if (chatClient is ChatClient concreteClient)
             concreteClient.OfflineMessagesDelivered += ChatClient_OfflineMessagesDelivered;
 
         // Watch for incoming file offers at app level, so an offer is never missed because
-        // the chat window hadn't been created yet.
+        // the conversation hadn't been opened yet.
         var fileTransfers = App.Services.GetRequiredService<FileTransferCoordinator>();
         fileTransfers.Observe(chatClient);
-        fileTransfers.FileReceived += FileTransfers_FileReceived;
         fileTransfers.Progress += FileTransfers_Progress;
+
+        _conversations = App.Services.GetRequiredService<ConversationCoordinator>();
+        _conversations.MessageReceived += Conversations_MessageReceived;
+        _conversations.SystemNotice += Conversations_SystemNotice;
+        _conversations.TypingChanged += Conversations_TypingChanged;
+        _conversations.FileReceived += Conversations_FileReceived;
+
+        contactListControl.BuddySelected += ContactListControl_BuddySelected;
+        contactListControl.RoomSelected += ContactListControl_RoomSelected;
+        contactListControl.SendFileRequestedForBuddy += ContactListControl_SendFileRequestedForBuddy;
+        contactListControl.RoomRenamed += ContactListControl_RoomRenamed;
+
+        chatPane.AttachmentAdded += ChatPane_AttachmentAdded;
 
         // Pre-populate sign-in form with saved settings
         var settingsService = App.Services.GetRequiredService<SettingsService>();
@@ -69,6 +85,134 @@ public partial class MainWindow : Window
         // Check quietly in the background; the badge is the only sign until the user acts.
         _ = CheckForUpdateBadgeAsync();
     }
+
+    // ----- Conversation selection -----
+
+    private void ContactListControl_BuddySelected(object? sender, IBuddy buddy)
+    {
+        var chat = _conversations!.GetOrCreateBuddyChat(buddy);
+        _currentRoom = null;
+        _currentConversationKey = ConversationCoordinator.BuddyKey(buddy.Id);
+
+        chatPane.BindBuddy(buddy, chat);
+        ShowPane();
+
+        sharedMediaPanel.LoadForBuddy(buddy.Id);
+    }
+
+    private void ContactListControl_RoomSelected(object? sender, Room room)
+    {
+        var members = contactListControl.ResolveMembers(room);
+        var chat = _conversations!.GetOrCreateRoomChat(room, members);
+        _currentRoom = room;
+        _currentConversationKey = ConversationCoordinator.RoomKey(room.Id);
+
+        chatPane.BindRoom(room, chat, members.Count);
+        ShowPane();
+
+        sharedMediaPanel.LoadForRoom(room.Id);
+    }
+
+    private void ContactListControl_RoomRenamed(object? sender, Room room)
+    {
+        if (_currentRoom?.Id != room.Id)
+            return;
+
+        var members = contactListControl.ResolveMembers(room);
+        _conversations!.RenameRoom(room, members);
+        chatPane.UpdateRoomSession(_conversations.TryGet(ConversationCoordinator.RoomKey(room.Id)), members.Count);
+    }
+
+    private async void ContactListControl_SendFileRequestedForBuddy(object? sender, IBuddy buddy)
+    {
+        ContactListControl_BuddySelected(sender, buddy);
+
+        var files = await StorageProvider.OpenFilePickerAsync(new Avalonia.Platform.Storage.FilePickerOpenOptions
+        {
+            Title = "Gửi file",
+            AllowMultiple = false
+        });
+
+        if (files.Count > 0)
+            chatPane.SendFile(files[0].Path.LocalPath);
+    }
+
+    private void ShowPane()
+    {
+        chatPane.IsVisible = true;
+        noConversationText.IsVisible = false;
+    }
+
+    // ----- Central routing of live conversation events -----
+
+    private void Conversations_MessageReceived(object? sender, ConversationMessageEventArgs e)
+    {
+        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        {
+            bool isCurrent = e.ConversationKey == _currentConversationKey;
+            if (isCurrent)
+                chatPane.AppendIncomingMessage(e.Sender, e.Message);
+
+            // Notify unless the user is actively looking at exactly this conversation
+            if (!isCurrent || !IsActive)
+            {
+                _notificationService?.ShowMessageNotification(
+                    e.Sender.DisplayName,
+                    e.Message.Length > 50 ? e.Message[..50] + "..." : e.Message);
+            }
+        });
+    }
+
+    private void Conversations_SystemNotice(object? sender, ConversationSystemEventArgs e)
+    {
+        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        {
+            if (e.ConversationKey == _currentConversationKey)
+                chatPane.AppendSystemMessage(e.Text);
+        });
+    }
+
+    private void Conversations_TypingChanged(object? sender, ConversationTypingEventArgs e)
+    {
+        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        {
+            if (e.ConversationKey == _currentConversationKey)
+                chatPane.SetTyping(e.BuddyName);
+        });
+    }
+
+    private void Conversations_FileReceived(object? sender, ConversationFileEventArgs e)
+    {
+        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        {
+            bool isCurrent = e.ConversationKey == _currentConversationKey;
+            if (isCurrent)
+                chatPane.AppendIncomingFileMessage(e.SavedPath, e.FileName);
+
+            // Notify unless the user is actively looking at exactly this conversation
+            if (!isCurrent || !IsActive)
+            {
+                _notificationService?.ShowMessageNotification(e.Sender.DisplayName, $"Đã nhận file: {e.FileName}");
+            }
+        });
+    }
+
+    private void FileTransfers_Progress(object? sender, FileTransferProgressEventArgs e)
+    {
+        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        {
+            if (_currentConversationKey == ConversationCoordinator.BuddyKey(e.Buddy.Id))
+                chatPane.AppendSystemMessage(e.Message);
+        });
+    }
+
+    private void ChatPane_AttachmentAdded(object? sender, ChatMessage message)
+    {
+        var senderName = message.IsOwn ? _viewModel?.LoggedInUser.DisplayName ?? "" : message.SenderName;
+        sharedMediaPanel.Add(senderName, message.Text, message.FilePath, message.IsImage, message.ImageSource);
+    }
+
+    // ----- Update badge -----
 
     private UpdateService.UpdateInfo? _pendingUpdate;
 
@@ -227,7 +371,15 @@ public partial class MainWindow : Window
     {
         var chatClient = App.Services.GetRequiredService<IChatClient>();
         if (chatClient.IsLoggedIn)
+        {
+            _conversations?.EndAll();
+            _currentConversationKey = null;
+            _currentRoom = null;
+            chatPane.IsVisible = false;
+            noConversationText.IsVisible = true;
+            sharedMediaPanel.Clear();
             chatClient.Logout();
+        }
     }
 
     private void CloseMenu_Click(object? sender, RoutedEventArgs e)
@@ -261,38 +413,14 @@ public partial class MainWindow : Window
             return;
         }
 
-        var window = new Windows.ChatWindow(broadcast,
-            FindTranslation("ChatWindow_BroadCastChatTitle", "Broadcast chat"));
-        window.Show();
-        window.Activate();
-    }
+        var key = ConversationCoordinator.NewAdHocKey();
+        _conversations!.RegisterAdHoc(key, broadcast);
 
-    private async void CreateRoomMenu_Click(object? sender, RoutedEventArgs e)
-    {
-        var chatClient = App.Services.GetRequiredService<IChatClient>();
-        var dialogService = App.Services.GetRequiredService<IDialogService>();
-
-        var onlineBuddies = chatClient.Buddies.Where(b => b.IsOnline()).ToList();
-        if (onlineBuddies.Count == 0)
-        {
-            await dialogService.ShowMessageBoxAsync("CICMessenger",
-                FindTranslation("CreateRoom_NoContacts", "No contacts are online."));
-            return;
-        }
-
-        var picker = new Windows.CreateRoomWindow(onlineBuddies);
-        var selected = await picker.ShowDialog<System.Collections.Generic.List<IBuddy>?>(this);
-        if (selected == null || selected.Count == 0)
-            return;
-
-        // Start a session with the first member, then invite the rest into the same
-        // session — the core promotes it to a group chat as invitees join.
-        var chat = chatClient.StartChat(selected[0]);
-        foreach (var buddy in selected.Skip(1))
-            chat.Invite(buddy);
-
-        var windowManager = App.Services.GetRequiredService<ChatWindowManager>();
-        windowManager.OpenGroupRoom(selected[0], chat);
+        _currentRoom = null;
+        _currentConversationKey = key;
+        chatPane.BindBroadcast(FindTranslation("ChatWindow_BroadCastChatTitle", "Broadcast chat"), broadcast, key);
+        ShowPane();
+        sharedMediaPanel.Clear();
     }
 
     private async void UpdateMenu_Click(object? sender, RoutedEventArgs e)
@@ -391,24 +519,6 @@ public partial class MainWindow : Window
         });
     }
 
-    private void FileTransfers_FileReceived(object? sender, FileReceivedEventArgs e)
-    {
-        var chatClient = App.Services.GetRequiredService<IChatClient>();
-        var windowManager = App.Services.GetRequiredService<ChatWindowManager>();
-        var window = windowManager.OpenOrFocus(e.Buddy, () => chatClient.StartChat(e.Buddy));
-        window.ShowReceivedFile(e.FilePath, e.FileName);
-
-        _notificationService?.ShowMessageNotification(e.Buddy.DisplayName, $"Đã nhận file: {e.FileName}");
-    }
-
-    private void FileTransfers_Progress(object? sender, FileTransferProgressEventArgs e)
-    {
-        var chatClient = App.Services.GetRequiredService<IChatClient>();
-        var windowManager = App.Services.GetRequiredService<ChatWindowManager>();
-        var window = windowManager.OpenOrFocus(e.Buddy, () => chatClient.StartChat(e.Buddy));
-        window.ShowSystemNotice(e.Message);
-    }
-
     private void ChatClient_OfflineMessagesDelivered(object? sender, OfflineMessagesDeliveredEventArgs e)
     {
         Avalonia.Threading.Dispatcher.UIThread.Post(() =>
@@ -417,26 +527,6 @@ public partial class MainWindow : Window
                 string.Format(
                     FindTranslation("ChatWindow_QueuedMessagesDelivered", "Delivered {0} queued message(s)."),
                     e.Count) + $" ({e.Buddy.DisplayName})");
-        });
-    }
-
-    private void ChatClient_ChatStarted(object? sender, ChatStartedEventArgs e)
-    {
-        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
-        {
-            var buddy = e.Buddies.FirstOrDefault();
-            if (buddy != null)
-            {
-                var windowManager = App.Services.GetRequiredService<ChatWindowManager>();
-                windowManager.OpenOrFocus(buddy, e.Chat);
-
-                // Show notification if main window is not active
-                if (!IsActive)
-                {
-                    _notificationService?.ShowMessageNotification(
-                        buddy.DisplayName, "Đã bắt đầu một cuộc trò chuyện");
-                }
-            }
         });
     }
 }

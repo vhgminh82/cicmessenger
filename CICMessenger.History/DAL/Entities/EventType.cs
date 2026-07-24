@@ -11,6 +11,9 @@ namespace CICMessenger.History.DAL.Entities
         Buzz = 1,
         Joined = 2,
         Left = 3,
-        Activity = 4
+        Activity = 4,
+
+        /// <summary>A completed file/image/video transfer. Event.Data holds the local file path.</summary>
+        File = 5
     }
 }

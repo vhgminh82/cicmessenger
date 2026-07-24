@@ -92,8 +92,9 @@ public partial class App : Application
         services.AddSingleton<IDialogService, AvaloniaDialogService>();
         services.AddSingleton<IClipboardService, AvaloniaClipboardService>();
         services.AddSingleton<IAutoStartService, WindowsAutoStartService>();
-        services.AddSingleton<ChatWindowManager>();
+        services.AddSingleton<RoomsService>();
         services.AddSingleton<FileTransferCoordinator>();
+        services.AddSingleton<ConversationCoordinator>();
 
         return services.BuildServiceProvider();
     }

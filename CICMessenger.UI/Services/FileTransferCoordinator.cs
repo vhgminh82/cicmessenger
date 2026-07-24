@@ -70,21 +70,13 @@ public class FileTransferCoordinator
         Serilog.Log.Information("Incoming file offer '{Name}' ({Size} bytes) from {Buddy}",
             transfer.Name, transfer.Size, e.Buddy?.DisplayName);
 
-        Dispatcher.UIThread.Post(async () =>
+        Dispatcher.UIThread.Post(() =>
         {
             try
             {
-                var dialogService = App.Services.GetRequiredService<IDialogService>();
-                var prompt = $"{e.Buddy.DisplayName} muốn gửi cho bạn file \"{transfer.Name}\" ({FormatSize(transfer.Size)}). Bạn có nhận không?";
-
-                var answer = await dialogService.ShowMessageBoxAsync("CICMessenger", prompt, MessageBoxButton.YesNo);
-                if (answer != MessageBoxResult.Yes)
-                {
-                    transfer.Cancel();
-                    Report(e.Buddy, $"Đã từ chối nhận file: {transfer.Name}");
-                    return;
-                }
-
+                // Accept automatically — no confirmation prompt. LAN peers are already
+                // trusted contacts, so requiring a click for every incoming file just adds
+                // friction without meaningfully improving safety.
                 var savePath = BuildDownloadPath(transfer.Name);
 
                 transfer.TransferCompleted += (_, _) =>

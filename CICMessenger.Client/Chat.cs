@@ -177,6 +177,12 @@ namespace CICMessenger.Client
             });
         }
 
+        public void LogFileTransfer(bool outgoing, IBuddy? remoteBuddy, string fileName, string filePath)
+        {
+            var sender = outgoing ? self : (remoteBuddy ?? self);
+            Task.Run(() => LogHistory(EventType.File, sender, filePath));
+        }
+
         #endregion
 
         void buddies_GroupChatStarted(object? sender, EventArgs e)
@@ -263,6 +269,19 @@ namespace CICMessenger.Client
             }
         }
 
+        string? roomId;
+        string? roomName;
+        IEnumerable<IBuddy>? roomMembers;
+
+        public void SetRoomContext(string roomId, string roomName, IEnumerable<IBuddy> members)
+        {
+            this.roomId = roomId;
+            this.roomName = roomName;
+            this.roomMembers = members.ToList();
+        }
+
+        string HistorySessionId => roomId ?? session.Id.ToString();
+
         bool sessionLogged;
         void LogHistory(EventType eventType, IBuddy sender, string? data = null)
         {
@@ -270,7 +289,7 @@ namespace CICMessenger.Client
             {
                 if (!sessionLogged)
                     LogSessionStart();
-                manager.AddSessionEvent(session.Id.ToString(), eventType, sender.Id, sender.DisplayName, buddies.Select(b => b.Id), data);
+                manager.AddSessionEvent(HistorySessionId, eventType, sender.Id, sender.DisplayName, buddies.Select(b => b.Id), data);
             });
         }
 
@@ -280,15 +299,15 @@ namespace CICMessenger.Client
             {
                 sessionLogged = true;
                 IBuddy primaryBuddy = Buddies.FirstOrDefault();
-                var newSession = new Session() 
-                { 
-                    Id = session.Id.ToString(), 
-                    ContactId = primaryBuddy.Id, 
-                    ContactName = primaryBuddy.DisplayName, 
-                    Start = DateTime.Now 
+                var newSession = new Session()
+                {
+                    Id = HistorySessionId,
+                    ContactId = roomId ?? primaryBuddy.Id,
+                    ContactName = roomName ?? primaryBuddy.DisplayName,
+                    Start = DateTime.Now
                 };
-                
-                var participants = Buddies.Append(self)
+
+                var participants = (roomMembers ?? Buddies).Append(self)
                                           .Select(b => new Participant()
                                             {
                                                 Id = Guid.NewGuid().ToString(),

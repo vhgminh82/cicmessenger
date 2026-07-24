@@ -7,7 +7,7 @@
             <TextBlock Text="CICMessenger"
                        FontSize="28" FontWeight="Bold"
                        HorizontalAlignment="Center"
-                       Foreground="{DynamicResource SystemAccentColor}" />
+                       Foreground="#CC5500" />
             <TextBlock Text="Ứng dụng nhắn tin mạng nội bộ"
                        FontSize="14"
                        HorizontalAlignment="Center"
@@ -23,20 +23,14 @@
                              Watermark="{DynamicResource MainWindow_SignIn_Username}"
                              MaxLength="50" />
 
-                    <TextBlock Text="{DynamicResource MainWindow_SignIn_Password}" />
-                    <TextBox x:Name="txtPassword"
-                             PasswordChar="●"
-                             MaxLength="100" />
-
-                    <CheckBox x:Name="chkRememberMe"
-                              Content="{DynamicResource MainWindow_SignIn_SaveNameAndPassword}" />
-
                     <Button x:Name="btnSignIn"
                             Content="{DynamicResource MainWindow_SignIn_SignInButton}"
-                            HorizontalAlignment="Center"
-                            Classes="accent"
+                            HorizontalAlignment="Stretch"
+                            HorizontalContentAlignment="Center"
                             Click="SignIn_Click"
-                            Width="120" Height="36" />
+                            Background="#1B5E20"
+                            Foreground="White"
+                            Height="36" />
                 </StackPanel>
             </Border>
         </StackPanel>

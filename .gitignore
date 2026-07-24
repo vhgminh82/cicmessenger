@@ -27,6 +27,8 @@
 /CICMessenger.Setup/bin
 /CICMessenger.Tests/bin
 /CICMessenger.Tests/obj
+/CICMessenger.Launcher/bin
+/CICMessenger.Launcher/obj
 /Libraries/Plugins/NAudio.dll
 /Libraries/Plugins/CICMessenger.FileTransfer.dll
 /Libraries/Plugins/CICMessenger.VoiceChat.dll

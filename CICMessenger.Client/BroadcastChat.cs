@@ -106,6 +106,20 @@ namespace CICMessenger.Client
             throw new InvalidOperationException("Can not invite buddies in a broadcast chat.");
         }
 
+        public void LogFileTransfer(bool outgoing, IBuddy? remoteBuddy, string fileName, string filePath)
+        {
+            throw new InvalidOperationException("Can not transfer files in a broadcast chat.");
+        }
+
+        /// <summary>Ties every underlying one-to-one session to the same persistent room, so
+        /// they all log into a single shared conversation history.</summary>
+        public void SetRoomContext(string roomId, string roomName, IEnumerable<IBuddy> members)
+        {
+            var memberList = members.ToList();
+            lock (chatSessions)
+                chatSessions.ForEach(s => s.SetRoomContext(roomId, roomName, memberList));
+        }
+
         public void AddSession(IChat session)
         {
             lock (chatSessions)

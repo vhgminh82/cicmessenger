@@ -50,6 +50,13 @@ namespace CICMessenger.History
                 return repository.GetRecentMessagesWithContact(contactId, limit);
         }
 
+        /// <summary>Recent messages for a room (or any conversation with a stable session id).</summary>
+        public IEnumerable<Event> GetRecentMessages(string sessionId, int limit = 50)
+        {
+            using (HistoryRepository repository = this.CreateRepository())
+                return repository.GetRecentMessages(sessionId, limit);
+        }
+
         public IEnumerable<Session> GetSessions(SessionCriteria criteria)
         {
             using (HistoryRepository repository = this.CreateRepository())

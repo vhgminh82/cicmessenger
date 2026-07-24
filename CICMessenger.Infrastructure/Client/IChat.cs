@@ -76,5 +76,18 @@ namespace CICMessenger.Client
         void Leave();
 
         void Invite(IBuddy buddy);
+
+        /// <summary>
+        /// Records a completed file/image transfer in the chat history, mirroring how text
+        /// messages are logged, so the attachment survives closing and reopening the window.
+        /// </summary>
+        void LogFileTransfer(bool outgoing, IBuddy? remoteBuddy, string fileName, string filePath);
+
+        /// <summary>
+        /// Ties this chat's history logging to a persistent room instead of the transport
+        /// session's own (ephemeral) id, so every time the room is reopened its messages
+        /// keep appending to the same conversation instead of starting a new one.
+        /// </summary>
+        void SetRoomContext(string roomId, string roomName, IEnumerable<IBuddy> members);
     }
 }

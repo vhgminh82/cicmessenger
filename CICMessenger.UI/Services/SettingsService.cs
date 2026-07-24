@@ -15,6 +15,9 @@ public class SettingsService
             ? "CICMessenger"
             : $"CICMessenger_{Environment.GetEnvironmentVariable("CICMESSENGER_INSTANCE")}");
 
+    /// <summary>The per-instance app data folder, exposed so other local stores (rooms, etc.) live alongside settings.</summary>
+    public static string Folder => SettingsFolder;
+
     private static readonly string SettingsFile = Path.Combine(SettingsFolder, "settings.json");
     private static readonly string ClientIdFile = Path.Combine(SettingsFolder, "clientid.txt");
 

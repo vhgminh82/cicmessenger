@@ -21,6 +21,13 @@ namespace CICMessenger.Client
 
         IChat StartChat(IBuddy buddy);
         IChat? StartBroadcastChat();
+
+        /// <summary>
+        /// Starts a chat fanned out to exactly the given (online) buddies — used for group
+        /// rooms, which target a fixed member list rather than everyone currently online.
+        /// Returns null if none of them are online.
+        /// </summary>
+        IChat? StartChat(IEnumerable<IBuddy> buddies);
         void Login(LoginOptions options);
         void Logout();
         bool RemoveBuddy(IBuddy buddy);

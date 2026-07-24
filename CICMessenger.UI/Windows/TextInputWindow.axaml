@@ -1,0 +1,17 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="CICMessenger.UI.Windows.TextInputWindow"
+        Icon="avares://CICMessenger/Assets/cic-logo.ico"
+        Width="340" Height="150"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False"
+        SizeToContent="Height">
+    <StackPanel Margin="16" Spacing="10">
+        <TextBlock x:Name="promptText" TextWrapping="Wrap" />
+        <TextBox x:Name="inputBox" KeyDown="InputBox_KeyDown" />
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+            <Button Content="{DynamicResource Global_OKButton}" Click="Ok_Click" Classes="accent" MinWidth="80" />
+            <Button Content="{DynamicResource Global_CancelButton}" Click="Cancel_Click" MinWidth="80" />
+        </StackPanel>
+    </StackPanel>
+</Window>

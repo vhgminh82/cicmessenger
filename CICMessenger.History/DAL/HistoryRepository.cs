@@ -44,8 +44,27 @@ namespace CICMessenger.History.DAL
         public IEnumerable<Event> GetRecentMessagesWithContact(string contactId, int limit)
         {
             var messages = (from evnt in context.Events.Include(e => e.Session).ThenInclude(s => s.Participants)
-                            where evnt.TypeCode == (int)EventType.Message
+                            where (evnt.TypeCode == (int)EventType.Message || evnt.TypeCode == (int)EventType.File)
                                   && evnt.Session.Participants.Any(p => p.ContactId == contactId)
+                            orderby evnt.Stamp descending
+                            select evnt)
+                           .Take(limit)
+                           .ToList();
+
+            messages.Reverse();
+            return messages;
+        }
+
+        /// <summary>
+        /// Recent messages for a specific (stable) session id, oldest first — used for
+        /// rooms, whose session id is chosen once by the app and stays fixed across
+        /// reopenings, so a direct lookup is precise (no participant-set ambiguity).
+        /// </summary>
+        public IEnumerable<Event> GetRecentMessages(string sessionId, int limit)
+        {
+            var messages = (from evnt in context.Events
+                            where evnt.SessionId == sessionId
+                                  && (evnt.TypeCode == (int)EventType.Message || evnt.TypeCode == (int)EventType.File)
                             orderby evnt.Stamp descending
                             select evnt)
                            .Take(limit)

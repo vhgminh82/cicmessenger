@@ -25,9 +25,6 @@ public partial class SignInControl : UserControl
     {
         if (!string.IsNullOrEmpty(displayName))
             txtDisplayName.Text = displayName;
-        if (!string.IsNullOrEmpty(password))
-            txtPassword.Text = password;
-        chkRememberMe.IsChecked = saveNameAndPassword;
 
         // Group name is no longer asked for at sign-in; keep whatever was configured
         // in Settings so existing grouping still works.
@@ -39,7 +36,6 @@ public partial class SignInControl : UserControl
     private void SignIn_Click(object? sender, RoutedEventArgs e)
     {
         var displayName = txtDisplayName.Text?.Trim() ?? "";
-        var password = txtPassword.Text ?? "";
 
         if (string.IsNullOrEmpty(displayName))
             return;
@@ -48,8 +44,8 @@ public partial class SignInControl : UserControl
         {
             DisplayName = displayName,
             GroupName = _groupName,
-            Password = password,
-            SaveNameAndPassword = chkRememberMe.IsChecked ?? false
+            Password = "",
+            SaveNameAndPassword = false
         });
     }
 }

@@ -6,6 +6,7 @@
     <UserControl.Resources>
         <converters:StatusConverter x:Key="statusConverter" />
         <converters:StatusBrushConverter x:Key="statusBrushConverter" />
+        <converters:MachineInfoConverter x:Key="machineInfoConverter" />
     </UserControl.Resources>
 
     <DockPanel>
@@ -15,9 +16,23 @@
             <StackPanel Spacing="4">
                 <TextBlock Text="{Binding LoggedInUser.DisplayName}"
                            FontSize="16" FontWeight="SemiBold" />
-                <TextBlock Text="{Binding LoggedInUser.Status, Converter={StaticResource statusConverter}}"
-                           FontSize="12"
-                           Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}" />
+                <TextBlock Text="{Binding LoggedInUser, Converter={StaticResource machineInfoConverter}}"
+                           FontSize="11" FontStyle="Italic"
+                           Foreground="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" />
+                <Button x:Name="statusButton"
+                        Padding="0" Background="Transparent" BorderThickness="0"
+                        HorizontalAlignment="Left" Cursor="Hand">
+                    <TextBlock Text="{Binding LoggedInUser.Status, Converter={StaticResource statusConverter}}"
+                               FontSize="12"
+                               Foreground="{DynamicResource SystemControlForegroundAccentBrush}"
+                               TextDecorations="Underline" />
+                    <Button.Flyout>
+                        <MenuFlyout Placement="BottomEdgeAlignedLeft">
+                            <MenuItem Header="Trực tuyến" Click="SetStatusOnline_Click" />
+                            <MenuItem Header="Bận" Click="SetStatusBusy_Click" />
+                        </MenuFlyout>
+                    </Button.Flyout>
+                </Button>
             </StackPanel>
         </Border>
 
@@ -25,11 +40,43 @@
         <controls:FilterTextBox DockPanel.Dock="Top" x:Name="filterBox"
                                  Margin="8,4" />
 
+        <!-- Rooms section -->
+        <DockPanel DockPanel.Dock="Top">
+            <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto" Margin="10,4,6,2">
+                <TextBlock Grid.Column="0" Text="{DynamicResource RoomList_Header}" FontSize="11" FontWeight="SemiBold"
+                           Opacity="0.7" VerticalAlignment="Center" />
+                <Button Grid.Column="1" Content="{DynamicResource RoomList_NewRoom}" FontSize="11"
+                        Padding="6,2" Background="Transparent" BorderThickness="0" Click="NewRoom_Click" />
+            </Grid>
+            <ListBox x:Name="roomsList"
+                     SelectionMode="Single"
+                     SelectionChanged="RoomsList_SelectionChanged"
+                     MaxHeight="160">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <Grid ColumnDefinitions="Auto,*" Margin="4,6">
+                            <Border Grid.Column="0" Width="10" Height="10" CornerRadius="5" Background="#3D7EFF" />
+                            <TextBlock Grid.Column="1" Margin="8,0,0,0" Text="{Binding Name}" FontSize="14" />
+                        </Grid>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+                <ListBox.ContextMenu>
+                    <ContextMenu>
+                        <MenuItem Header="{DynamicResource RoomList_Rename}" Click="RenameRoom_Click" />
+                        <MenuItem Header="{DynamicResource RoomList_Delete}" Click="DeleteRoom_Click" />
+                    </ContextMenu>
+                </ListBox.ContextMenu>
+            </ListBox>
+        </DockPanel>
+
+        <TextBlock DockPanel.Dock="Top" Text="{DynamicResource ContactList_Header}" FontSize="11" FontWeight="SemiBold"
+                   Opacity="0.7" Margin="10,6,6,2" />
+
         <!-- Contact List -->
         <ListBox x:Name="contactsList"
                  ItemsSource="{Binding Buddies}"
                  SelectionMode="Single"
-                 DoubleTapped="ContactsList_DoubleTapped">
+                 SelectionChanged="ContactsList_SelectionChanged">
             <ListBox.ItemTemplate>
                 <DataTemplate>
                     <Grid ColumnDefinitions="Auto,*" Margin="4,6">
@@ -40,6 +87,10 @@
                         <!-- Contact info -->
                         <StackPanel Grid.Column="1" Margin="8,0,0,0">
                             <TextBlock Text="{Binding DisplayName}" FontSize="14" />
+                            <TextBlock Text="{Binding ., Converter={StaticResource machineInfoConverter}}"
+                                       FontSize="10" FontStyle="Italic"
+                                       Foreground="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                                       TextTrimming="CharacterEllipsis" />
                             <TextBlock Text="{Binding Properties.DisplayMessage}"
                                        FontSize="11"
                                        Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"

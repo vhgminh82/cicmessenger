@@ -6,9 +6,16 @@ using CICMessenger.Client;
 
 namespace CICMessenger.UI.Windows;
 
+/// <summary>Result of the room-creation dialog: the chosen name and member contacts.</summary>
+public class RoomCreationResult
+{
+    public string Name { get; init; } = "";
+    public List<IBuddy> Members { get; init; } = new();
+}
+
 /// <summary>
-/// Lets the user pick several online contacts to start a group chat room with.
-/// Returns the selected buddies via ShowDialog result (null = cancelled).
+/// Lets the user name a room and pick contacts to add as members.
+/// Returns the result via ShowDialog (null = cancelled).
 /// </summary>
 public partial class CreateRoomWindow : Window
 {
@@ -17,9 +24,9 @@ public partial class CreateRoomWindow : Window
         InitializeComponent();
     }
 
-    public CreateRoomWindow(IEnumerable<IBuddy> onlineBuddies) : this()
+    public CreateRoomWindow(IEnumerable<IBuddy> buddies) : this()
     {
-        contactsList.ItemsSource = onlineBuddies.ToList();
+        contactsList.ItemsSource = buddies.ToList();
     }
 
     private void Create_Click(object? sender, RoutedEventArgs e)
@@ -28,7 +35,11 @@ public partial class CreateRoomWindow : Window
         if (selected == null || selected.Count == 0)
             return;
 
-        Close(selected);
+        var name = roomNameBox.Text?.Trim();
+        if (string.IsNullOrEmpty(name))
+            name = string.Join(", ", selected.Select(b => b.DisplayName));
+
+        Close(new RoomCreationResult { Name = name, Members = selected });
     }
 
     private void Cancel_Click(object? sender, RoutedEventArgs e)

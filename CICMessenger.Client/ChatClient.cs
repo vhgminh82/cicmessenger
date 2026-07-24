@@ -136,7 +136,24 @@ namespace CICMessenger.Client
 
             IChatSession session = chatService.CreateSession(new CICMessengerEndPoint(buddy.Id, ((Buddy)buddy).ChatEndPoint));
             return CreateChat(session, new[] { buddy });
-        }        
+        }
+
+        public IChat? StartChat(IEnumerable<IBuddy> buddies)
+        {
+            if (!IsLoggedIn)
+                throw new InvalidOperationException("Not logged in.");
+
+            var sessions = buddies.Where(b => b.IsOnline())
+                                  .Select(b => StartChat(b))
+                                  .ToList();
+
+            if (sessions.Count == 0)
+                return null;
+
+            var broadcast = new BroadcastChat(sessions);
+            broadcast.EnableLogging = EnableLogging;
+            return broadcast;
+        }
 
         public void Login(LoginOptions options)
         {

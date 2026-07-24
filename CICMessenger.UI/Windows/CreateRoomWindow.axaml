@@ -3,10 +3,14 @@
         x:Class="CICMessenger.UI.Windows.CreateRoomWindow"
         Icon="avares://CICMessenger/Assets/cic-logo.ico"
         Title="{DynamicResource CreateRoom_Title}"
-        Width="360" Height="440"
+        Width="360" Height="480"
         WindowStartupLocation="CenterOwner"
         CanResize="True">
     <DockPanel Margin="12">
+        <TextBox x:Name="roomNameBox" DockPanel.Dock="Top"
+                 Watermark="{DynamicResource CreateRoom_NameWatermark}"
+                 Margin="0,0,0,8" />
+
         <TextBlock DockPanel.Dock="Top"
                    Text="{DynamicResource CreateRoom_SelectContacts}"
                    Margin="0,0,0,8" />

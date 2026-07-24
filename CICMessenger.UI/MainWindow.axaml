@@ -4,7 +4,8 @@
         x:Class="CICMessenger.UI.MainWindow"
         Icon="avares://CICMessenger/Assets/cic-logo.ico"
         Title="{Binding Title}"
-        Width="320" Height="550"
+        Width="1040" Height="650"
+        MinWidth="720" MinHeight="480"
         WindowStartupLocation="CenterScreen">
     <DockPanel>
         <!-- Menu Bar -->
@@ -36,8 +37,6 @@
                 <MenuItem Header="{DynamicResource MainWindow_MainMenu_Actions}">
                     <MenuItem Header="{DynamicResource MainWindow_SendBroadcastMessage}"
                               IsEnabled="{Binding IsLoggedIn}" Click="BroadcastMenu_Click" />
-                    <MenuItem Header="{DynamicResource MainWindow_MainMenu_CreateRoom}"
-                              IsEnabled="{Binding IsLoggedIn}" Click="CreateRoomMenu_Click" />
                 </MenuItem>
                 <MenuItem Header="{DynamicResource MainWindow_MainMenu_Tools}">
                     <MenuItem Header="{DynamicResource MainWindow_MainMenu_HistoryViewer}"
@@ -49,12 +48,31 @@
             </Menu>
         </DockPanel>
 
-        <!-- Content Area: Sign-in or Contact List -->
+        <!-- Content Area: Sign-in, or the 3-column conversation layout -->
         <Panel>
             <controls:SignInControl x:Name="signInControl"
                                      IsVisible="{Binding !IsLoggedIn}" />
-            <controls:ContactListControl x:Name="contactListControl"
-                                          IsVisible="{Binding IsLoggedIn}" />
+
+            <Grid IsVisible="{Binding IsLoggedIn}"
+                  ColumnDefinitions="280,4,*,4,260">
+                <controls:ContactListControl Grid.Column="0" x:Name="contactListControl" />
+
+                <GridSplitter Grid.Column="1" Width="4"
+                              Background="{DynamicResource SystemControlForegroundBaseLowBrush}" />
+
+                <Panel Grid.Column="2">
+                    <controls:ChatPaneControl x:Name="chatPane" IsVisible="False" />
+                    <TextBlock x:Name="noConversationText"
+                               Text="{DynamicResource SharedMedia_SelectConversation}"
+                               HorizontalAlignment="Center" VerticalAlignment="Center"
+                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}" />
+                </Panel>
+
+                <GridSplitter Grid.Column="3" Width="4"
+                              Background="{DynamicResource SystemControlForegroundBaseLowBrush}" />
+
+                <controls:SharedMediaPanel Grid.Column="4" x:Name="sharedMediaPanel" />
+            </Grid>
         </Panel>
     </DockPanel>
 </Window>
