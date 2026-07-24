@@ -94,6 +94,58 @@ CICMessenger.Utilities       (Cross-cutting helpers used by all layers)
 - **No automated tests**: this repo has no test suite — validate changes by building and manual testing
 - **CICMessenger.Translate still uses WPF**: don't try to build it on non-Windows or without Windows Desktop SDK
 
+## Deploy / Release
+
+The `.github/workflows/release.yml` GitHub Action (triggered by pushing a `v*` tag) is
+currently **non-functional** — the GitHub account this repo lives under (`vhgminh82`) has
+Actions locked for a billing issue, so every release run since at least v0.12.0 fails in ~3s
+with "The job was not started because your account is locked due to a billing issue." Don't
+assume tagging alone produces a release; build and publish locally instead, until that's
+resolved.
+
+**Standing deploy process** (do this instead of relying on the Action):
+
+1. Bump `<Version>`/`<AssemblyVersion>` in `Directory.Build.props` (Minor +1, e.g.
+   `0.15.0` → `0.16.0`).
+2. Full clean build + test pass: `dotnet build CICMessenger.sln --no-incremental` then
+   `dotnet test CICMessenger.Tests/CICMessenger.Tests.csproj` — 0 warnings beyond the known
+   `CA1416`/`IL2026`/designer-file ones, 0 test failures.
+3. Commit, push to `origin/main`, tag `vX.Y.Z`, push the tag:
+   ```powershell
+   git add -A
+   git commit -m "..."
+   git push origin main
+   git tag -a vX.Y.Z -m "vX.Y.Z"
+   git push origin vX.Y.Z
+   ```
+4. Build the release artifacts locally, mirroring `release.yml` exactly (adjust the version
+   string each time). Publish from **outside** the repo (e.g. `../dist`, a sibling of
+   `Squiggle/`) so build output never lands under version control:
+   ```powershell
+   dotnet publish CICMessenger.UI/CICMessenger.UI.csproj `
+     --configuration Release --runtime win-x64 --self-contained true `
+     -p:PublishSingleFile=false -p:PublishTrimmed=false -p:Version=X.Y.Z `
+     --output ../dist/CICMessenger/app
+
+   dotnet publish CICMessenger.Launcher/CICMessenger.Launcher.csproj `
+     --configuration Release --runtime win-x64 --self-contained true `
+     -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true -p:PublishTrimmed=true `
+     --output ../dist/CICMessenger
+   ```
+5. Generate `manifest.json` (sha256 + size per file under `app/`) and the release assets —
+   same shape the Action produces: `manifest.json`, the individual `CICMessenger*` files (for
+   differential updates), and a full `CICMessenger-vX.Y-setup.zip` of the install dir. See
+   the "Generate manifest and assets" step in `release.yml` for the exact logic; PowerShell's
+   `-replace` with a literal backslash pattern is finicky here — use
+   `.Replace('\', '/')` instead of a regex replace.
+6. `gh run list --repo vhgminh82/cicmessenger --workflow=release.yml` to confirm/reconfirm the
+   Action failure reason before assuming step 4 was necessary; `gh` defaults to the
+   `upstream` remote (`hasankhan/Squiggle`) in this repo, so **always pass `--repo
+   vhgminh82/cicmessenger`** explicitly or you'll be looking at the wrong repo's runs.
+7. Creating the actual public GitHub Release (uploading the assets from step 5) is a
+   separate, explicit-permission action — confirm with the user before running `gh release
+   create`.
+
 ## Conventions
 
 - Events are initialized with empty delegates (`event ... = delegate { };`) to avoid null checks.
