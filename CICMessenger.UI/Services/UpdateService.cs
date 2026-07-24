@@ -220,9 +220,11 @@ public class UpdateService
         var extractDir = Path.Combine(staging, "extracted");
         ZipFile.ExtractToDirectory(zipPath, extractDir);
 
-        // The zip may wrap everything in a single top folder — unwrap it
-        var roots = Directory.GetFileSystemEntries(extractDir);
-        var sourceDir = roots.Length == 1 && Directory.Exists(roots[0]) ? roots[0] : extractDir;
+        // The zip is the whole install (a launcher plus an app\ subfolder), so find the
+        // folder that actually holds the app — the one containing manifest.json — and sync
+        // that over our own folder, wherever it sits in the archive.
+        var manifestInZip = Directory.EnumerateFiles(extractDir, "manifest.json", SearchOption.AllDirectories).FirstOrDefault();
+        var sourceDir = manifestInZip != null ? Path.GetDirectoryName(manifestInZip)! : extractDir;
 
         LaunchFolderSyncScript(sourceDir, appDir, staging, currentExe);
     }

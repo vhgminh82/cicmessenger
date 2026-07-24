@@ -25,26 +25,33 @@ jobs:
           echo "version=$ver" >> "$GITHUB_OUTPUT"
           echo "display=v$(echo "$ver" | cut -d. -f1).$(echo "$ver" | cut -d. -f2)" >> "$GITHUB_OUTPUT"
 
-      # Folder publish (NOT single-file): the app is a folder so updates can replace
-      # only the couple of MB of app assemblies, not the whole ~60MB runtime.
-      - name: Publish
+      # The install root holds only the launcher; the real multi-file app lives in app\,
+      # so updates replace only the couple of MB of app assemblies, not the ~60MB runtime.
+      - name: Publish app
         run: >
           dotnet publish CICMessenger.UI/CICMessenger.UI.csproj
-          --configuration Release
-          --runtime win-x64
-          --self-contained true
-          -p:PublishSingleFile=false
-          -p:PublishTrimmed=false
+          --configuration Release --runtime win-x64 --self-contained true
+          -p:PublishSingleFile=false -p:PublishTrimmed=false
           -p:Version=${{ steps.version.outputs.version }}
-          --output ./publish/CICMessenger
+          --output ./install/CICMessenger/app
 
-      # Per-file SHA256 manifest consumed by the in-app differential updater.
+      - name: Publish launcher
+        run: >
+          dotnet publish CICMessenger.Launcher/CICMessenger.Launcher.csproj
+          --configuration Release --runtime win-x64 --self-contained true
+          -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true -p:PublishTrimmed=true
+          --output ./install/CICMessenger
+
       - name: Generate manifest and assets
         shell: pwsh
         run: |
-          $appDir = "./publish/CICMessenger"
+          $installDir = "./install/CICMessenger"
+          $appDir = Join-Path $installDir "app"
           $assetDir = "./assets"
           New-Item -ItemType Directory -Path $assetDir | Out-Null
+
+          # keep the install root clean: only the launcher exe
+          Get-ChildItem $installDir -File | Where-Object { $_.Name -ne "CICMessenger.exe" } | Remove-Item -Force
 
           $files = @()
           Get-ChildItem $appDir -Recurse -File | ForEach-Object {
@@ -63,9 +70,9 @@ jobs:
           Get-ChildItem $appDir -File | Where-Object { $_.Name -like "CICMessenger*" -and $_.Name -ne "manifest.json" } |
             ForEach-Object { Copy-Item $_.FullName (Join-Path $assetDir $_.Name) }
 
-          # full zip (first install / when a runtime file changes)
-          Compress-Archive -Path (Join-Path $appDir "*") `
-            -DestinationPath (Join-Path $assetDir "CICMessenger-${{ steps.version.outputs.display }}-full.zip") -Force
+          # full setup zip (launcher + app\) for first install / runtime changes
+          Compress-Archive -Path $installDir `
+            -DestinationPath (Join-Path $assetDir "CICMessenger-${{ steps.version.outputs.display }}-setup.zip") -Force
 
       - name: Create Release
         uses: softprops/action-gh-release@v2

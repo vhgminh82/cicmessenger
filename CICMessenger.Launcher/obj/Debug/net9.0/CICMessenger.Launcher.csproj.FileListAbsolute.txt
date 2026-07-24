@@ -1,0 +1,15 @@
+D:\OneDriveCIC\OneDrive - CNCTech\CIC-tools\CICMessenger\Squiggle\CICMessenger.Launcher\bin\Debug\net9.0\CICMessenger.exe
+D:\OneDriveCIC\OneDrive - CNCTech\CIC-tools\CICMessenger\Squiggle\CICMessenger.Launcher\bin\Debug\net9.0\CICMessenger.deps.json
+D:\OneDriveCIC\OneDrive - CNCTech\CIC-tools\CICMessenger\Squiggle\CICMessenger.Launcher\bin\Debug\net9.0\CICMessenger.runtimeconfig.json
+D:\OneDriveCIC\OneDrive - CNCTech\CIC-tools\CICMessenger\Squiggle\CICMessenger.Launcher\bin\Debug\net9.0\CICMessenger.dll
+D:\OneDriveCIC\OneDrive - CNCTech\CIC-tools\CICMessenger\Squiggle\CICMessenger.Launcher\bin\Debug\net9.0\CICMessenger.pdb
+D:\OneDriveCIC\OneDrive - CNCTech\CIC-tools\CICMessenger\Squiggle\CICMessenger.Launcher\obj\Debug\net9.0\CICMessenger.Launcher.GeneratedMSBuildEditorConfig.editorconfig
+D:\OneDriveCIC\OneDrive - CNCTech\CIC-tools\CICMessenger\Squiggle\CICMessenger.Launcher\obj\Debug\net9.0\CICMessenger.Launcher.AssemblyInfoInputs.cache
+D:\OneDriveCIC\OneDrive - CNCTech\CIC-tools\CICMessenger\Squiggle\CICMessenger.Launcher\obj\Debug\net9.0\CICMessenger.Launcher.AssemblyInfo.cs
+D:\OneDriveCIC\OneDrive - CNCTech\CIC-tools\CICMessenger\Squiggle\CICMessenger.Launcher\obj\Debug\net9.0\CICMessenger.Launcher.csproj.CoreCompileInputs.cache
+D:\OneDriveCIC\OneDrive - CNCTech\CIC-tools\CICMessenger\Squiggle\CICMessenger.Launcher\obj\Debug\net9.0\CICMessenger.Launcher.sourcelink.json
+D:\OneDriveCIC\OneDrive - CNCTech\CIC-tools\CICMessenger\Squiggle\CICMessenger.Launcher\obj\Debug\net9.0\CICMessenger.dll
+D:\OneDriveCIC\OneDrive - CNCTech\CIC-tools\CICMessenger\Squiggle\CICMessenger.Launcher\obj\Debug\net9.0\refint\CICMessenger.dll
+D:\OneDriveCIC\OneDrive - CNCTech\CIC-tools\CICMessenger\Squiggle\CICMessenger.Launcher\obj\Debug\net9.0\CICMessenger.pdb
+D:\OneDriveCIC\OneDrive - CNCTech\CIC-tools\CICMessenger\Squiggle\CICMessenger.Launcher\obj\Debug\net9.0\CICMessenger.Launcher.genruntimeconfig.cache
+D:\OneDriveCIC\OneDrive - CNCTech\CIC-tools\CICMessenger\Squiggle\CICMessenger.Launcher\obj\Debug\net9.0\ref\CICMessenger.dll
