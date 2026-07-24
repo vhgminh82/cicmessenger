@@ -10,8 +10,6 @@ public class RoomsService
 {
     private static readonly string RoomsFile = Path.Combine(SettingsService.Folder, "rooms.json");
 
-    private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
-
     public List<Room> Load()
     {
         try
@@ -19,7 +17,7 @@ public class RoomsService
             if (File.Exists(RoomsFile))
             {
                 var json = File.ReadAllText(RoomsFile);
-                return JsonSerializer.Deserialize<List<Room>>(json, JsonOptions) ?? new List<Room>();
+                return JsonSerializer.Deserialize(json, AppJsonContext.Default.ListRoom) ?? new List<Room>();
             }
         }
         catch
@@ -35,7 +33,7 @@ public class RoomsService
         try
         {
             Directory.CreateDirectory(SettingsService.Folder);
-            var json = JsonSerializer.Serialize(rooms, JsonOptions);
+            var json = JsonSerializer.Serialize(rooms, AppJsonContext.Default.ListRoom);
             File.WriteAllText(RoomsFile, json);
         }
         catch

@@ -13,7 +13,7 @@ namespace CICMessenger.Core.Chat
 {
     public class ChatService : IChatService
     {
-        ChatHost chatHost = null!;
+        ChatHost? chatHost;
         ChatSessionCollection chatSessions = null!;
         CICMessengerEndPoint localEndPoint;
         readonly ILoggerFactory loggerFactory;
@@ -32,7 +32,7 @@ namespace CICMessenger.Core.Chat
 
         public IChatSession CreateSession(ICICMessengerEndPoint endPoint)
         {
-            IChatSession result = chatSessions.Find(s => !s.IsGroupSession && s.RemoteUsers.Contains(endPoint));
+            IChatSession? result = chatSessions.Find(s => !s.IsGroupSession && s.RemoteUsers.Contains(endPoint));
             if (result == null)
             {
                 var session = CreateSession(Guid.NewGuid(), endPoint);
@@ -78,7 +78,7 @@ namespace CICMessenger.Core.Chat
 
         ChatSession CreateSession(Guid sessionId, ICICMessengerEndPoint endpoint)
         {
-            ChatSession session = new ChatSession(sessionId, chatHost, localEndPoint, endpoint, loggerFactory.CreateLogger<ChatSession>());
+            ChatSession session = new ChatSession(sessionId, chatHost!, localEndPoint, endpoint, loggerFactory.CreateLogger<ChatSession>());
             RegisterSession(session);
             return session;
         }

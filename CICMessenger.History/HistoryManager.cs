@@ -100,6 +100,13 @@ namespace CICMessenger.History
                 repository.DeleteSessions(sessionIds);
         }
 
+        /// <summary>Deletes chat/file events older than <paramref name="cutoffUtc"/> across every conversation (auto-delete sweep).</summary>
+        public void DeleteEventsOlderThan(DateTime cutoffUtc)
+        {
+            using (HistoryRepository repository = this.CreateRepository())
+                repository.DeleteEventsOlderThan(cutoffUtc);
+        }
+
         [UnconditionalSuppressMessage("Trimming", "IL2026:RequiresUnreferencedCode",
             Justification = "EF Core model types are preserved; all entity types are statically referenced")]
         private HistoryRepository CreateRepository()

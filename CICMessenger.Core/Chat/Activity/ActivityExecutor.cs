@@ -155,7 +155,7 @@ namespace CICMessenger.Core.Chat.Activity
                     if (task.IsCanceled || (task.IsCompleted && !task.IsFaulted && task.Result))
                         OnTransferCancelled();
                     else if (task.IsFaulted)
-                        OnError(task.Exception.InnerException);
+                        OnError(task.Exception!.InnerException!);
                     else
                         OnTransferCompleted();
                 });

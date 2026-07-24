@@ -5,6 +5,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
+using Avalonia.Threading;
 using Microsoft.Extensions.DependencyInjection;
 using CICMessenger.Client;
 using CICMessenger.Core.Presence;
@@ -211,6 +212,62 @@ public partial class ContactListControl : UserControl
         Rooms.Save(all);
 
         _rooms.Remove(room);
+    }
+
+    /// <summary>Increments the unread badge for a buddy/room and forces its list row to redraw.</summary>
+    public void MarkUnread(string entityId, bool isRoom)
+    {
+        UnreadTracker.Increment(entityId);
+        RefreshRow(entityId, isRoom);
+    }
+
+    /// <summary>Clears the unread badge for a buddy/room (called when its conversation is opened).</summary>
+    public void ClearUnread(string entityId, bool isRoom)
+    {
+        if (UnreadTracker.Clear(entityId))
+            RefreshRow(entityId, isRoom);
+    }
+
+    /// <summary>
+    /// Forces one row to redraw by removing and re-inserting it at the same index — the same
+    /// trick <see cref="RenameRoom_Click"/> uses, since neither IBuddy nor Room raises a
+    /// property-changed notification the unread badge converters would otherwise react to.
+    /// Deferred via the dispatcher: <see cref="MarkUnread"/>/<see cref="ClearUnread"/> can be
+    /// called from inside the ListBox's own SelectionChanged handling (selecting a buddy
+    /// clears its badge), and mutating the selected ListBox's ItemsSource while its selection
+    /// model is mid-update corrupts it (crashes with an out-of-range index).
+    /// </summary>
+    private void RefreshRow(string entityId, bool isRoom)
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (isRoom)
+            {
+                var room = _rooms.FirstOrDefault(r => r.Id == entityId);
+                if (room == null)
+                    return;
+                bool wasSelected = ReferenceEquals(roomsList.SelectedItem, room);
+                var index = _rooms.IndexOf(room);
+                _rooms.RemoveAt(index);
+                _rooms.Insert(index, room);
+                if (wasSelected)
+                    roomsList.SelectedItem = room;
+            }
+            else
+            {
+                if (DataContext is not ClientViewModel vm)
+                    return;
+                var buddy = vm.Buddies.FirstOrDefault(b => b.Id == entityId);
+                if (buddy == null)
+                    return;
+                bool wasSelected = ReferenceEquals(contactsList.SelectedItem, buddy);
+                var index = vm.Buddies.IndexOf(buddy);
+                vm.Buddies.RemoveAt(index);
+                vm.Buddies.Insert(index, buddy);
+                if (wasSelected)
+                    contactsList.SelectedItem = buddy;
+            }
+        });
     }
 
     private void SetStatusOnline_Click(object? sender, RoutedEventArgs e) => SetStatus(UserStatus.Online);

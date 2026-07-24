@@ -10,7 +10,7 @@ namespace CICMessenger.Client
 {
     public class Buddy: INotifyPropertyChanged, CICMessenger.Client.IBuddy
     {
-        string displayName;
+        string displayName = string.Empty;
         UserStatus status;
         IBuddyProperties properties;
         bool initialized;
@@ -79,7 +79,7 @@ namespace CICMessenger.Client
             OnPropertyChanged("Properties");
         }
 
-        internal void Update(UserStatus status, string displayName, IPEndPoint chatEndPoint, IDictionary<string, string> properties)
+        internal void Update(UserStatus status, string displayName, IPEndPoint chatEndPoint, IDictionary<string, string>? properties)
         {
             this.Status = status;
             this.DisplayName = displayName;
@@ -109,7 +109,7 @@ namespace CICMessenger.Client
 
         #region INotifyPropertyChanged Members
 
-        public event PropertyChangedEventHandler PropertyChanged = delegate { };
+        public event PropertyChangedEventHandler? PropertyChanged = delegate { };
 
         #endregion
 
@@ -118,7 +118,7 @@ namespace CICMessenger.Client
             if (initialized)
             {
                 LastUpdated = DateTime.Now;
-                PropertyChanged(this, new PropertyChangedEventArgs(name));
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
             }
         }
     }

@@ -35,6 +35,16 @@ public class ConversationFileEventArgs : EventArgs
 }
 
 /// <summary>
+/// Raised when the live <see cref="IChat"/> behind a conversation key is swapped out for a
+/// different instance after it was already registered (see <see cref="ConversationCoordinator.Register"/>).
+/// </summary>
+public class ChatReplacedEventArgs : EventArgs
+{
+    public string ConversationKey { get; init; } = "";
+    public IChat Chat { get; init; } = null!;
+}
+
+/// <summary>
 /// Owns every live chat session (one-to-one or room) independently of which conversation
 /// happens to be showing in the single chat pane, so background conversations keep logging
 /// history and can still raise notifications while another conversation is open.
@@ -49,6 +59,7 @@ public class ConversationCoordinator
     public event EventHandler<ConversationSystemEventArgs>? SystemNotice;
     public event EventHandler<ConversationTypingEventArgs>? TypingChanged;
     public event EventHandler<ConversationFileEventArgs>? FileReceived;
+    public event EventHandler<ChatReplacedEventArgs>? ChatReplaced;
 
     public ConversationCoordinator(IChatClient chatClient, FileTransferCoordinator fileTransfers)
     {
@@ -132,8 +143,27 @@ public class ConversationCoordinator
 
     private void Register(string key, IChat chat)
     {
-        if (!_chats.TryAdd(key, chat))
-            return;
+        if (_chats.TryGetValue(key, out var existing))
+        {
+            if (ReferenceEquals(existing, chat))
+                return;
+
+            // Both peers can independently open the same conversation before either has sent
+            // a message: each side creates its own local IChatSession, so the buddy already
+            // has an entry here when the peer's session shows up via ChatClient.ChatStarted.
+            // The one just handed to us is the session actually carrying the peer's traffic
+            // (its session id came from their message), so it — not our own stale, one-sided
+            // session — becomes the conversation's chat of record. Otherwise the peer's
+            // messages arrive on a chat nobody is listening to: no live append, no
+            // notification, until the pane is rebound (e.g. by re-clicking the buddy) and
+            // picks the message back up from history.
+            _chats[key] = chat;
+            ChatReplaced?.Invoke(this, new ChatReplacedEventArgs { ConversationKey = key, Chat = chat });
+        }
+        else
+        {
+            _chats[key] = chat;
+        }
 
         // Locally started chats never raise ChatClient.ChatStarted, so attach here too or a
         // file the peer sends back on this session would go unanswered.

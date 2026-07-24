@@ -174,7 +174,7 @@ namespace CICMessenger.Core.Presence
 
         void OnUserOffline(string id)
         {
-            IUserInfo user;
+            IUserInfo? user;
             if (onlineUsers.TryRemove(id, out user))
             {
                 user.Status = UserStatus.Offline;
@@ -184,7 +184,7 @@ namespace CICMessenger.Core.Presence
 
         void OnUserUpdated(IUserInfo newUser)
         {
-            IUserInfo oldUser;            
+            IUserInfo? oldUser;
             if (onlineUsers.TryGetValue(newUser.ID, out oldUser))
             {
                 oldUser.Update(newUser);

@@ -9,7 +9,7 @@ namespace CICMessenger.Utilities
     {
         public static bool In<T>(this T item, params T[] options)
         {
-            bool result = options.Any(o=>o.Equals(item));
+            bool result = options.Any(o => EqualityComparer<T>.Default.Equals(o, item));
             return result;
         }
 

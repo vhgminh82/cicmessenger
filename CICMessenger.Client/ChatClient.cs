@@ -247,7 +247,7 @@ namespace CICMessenger.Client
         {
             IEnumerable<IBuddy> buddyList = e.Session.RemoteUsers
                                                      .Select(u => buddies[u.ClientID])
-                                                     .Where(b => b != null)
+                                                     .OfType<Buddy>()
                                                      .ToList();
             
             if (buddyList.Any())
@@ -279,7 +279,7 @@ namespace CICMessenger.Client
             var buddy = buddies[e.User.ID];
             if (buddy == null)
             {
-                buddy = new Buddy(e.User.ID, e.User.DisplayName, e.User.Status, e.User.ChatEndPoint, new BuddyProperties(e.User.Properties));
+                buddy = new Buddy(e.User.ID, e.User.DisplayName, e.User.Status, e.User.ChatEndPoint, new BuddyProperties(e.User.Properties ?? new Dictionary<string, string>()));
                 buddies.Add(buddy);
             }
             else

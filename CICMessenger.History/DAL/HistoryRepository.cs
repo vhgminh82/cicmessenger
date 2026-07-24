@@ -156,6 +156,13 @@ namespace CICMessenger.History.DAL
             context.SaveChanges();
         }
 
+        /// <summary>Deletes individual chat/file events older than <paramref name="cutoffUtc"/> (auto-delete sweep). Sessions and participants are left intact.</summary>
+        public void DeleteEventsOlderThan(DateTime cutoffUtc)
+        {
+            DeleteAll(context.Events, e => e.Stamp < cutoffUtc);
+            context.SaveChanges();
+        }
+
         public void AddStatusUpdate(DateTime stamp, string contactId, string contactName, int status)
         {
             context.StatusUpdates.Add(new StatusUpdate() 

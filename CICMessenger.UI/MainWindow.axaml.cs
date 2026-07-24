@@ -60,6 +60,7 @@ public partial class MainWindow : Window
         _conversations.SystemNotice += Conversations_SystemNotice;
         _conversations.TypingChanged += Conversations_TypingChanged;
         _conversations.FileReceived += Conversations_FileReceived;
+        _conversations.ChatReplaced += Conversations_ChatReplaced;
 
         contactListControl.BuddySelected += ContactListControl_BuddySelected;
         contactListControl.RoomSelected += ContactListControl_RoomSelected;
@@ -80,6 +81,8 @@ public partial class MainWindow : Window
         InitializeTrayIcon();
         InitializeNotifications();
 
+        App.Services.GetRequiredService<AutoDeleteService>().Start();
+
         versionLabel.Text = "V" + UpdateService.DisplayVersion;
 
         // Check quietly in the background; the badge is the only sign until the user acts.
@@ -93,6 +96,7 @@ public partial class MainWindow : Window
         var chat = _conversations!.GetOrCreateBuddyChat(buddy);
         _currentRoom = null;
         _currentConversationKey = ConversationCoordinator.BuddyKey(buddy.Id);
+        contactListControl.ClearUnread(buddy.Id, isRoom: false);
 
         chatPane.BindBuddy(buddy, chat);
         ShowPane();
@@ -106,6 +110,7 @@ public partial class MainWindow : Window
         var chat = _conversations!.GetOrCreateRoomChat(room, members);
         _currentRoom = room;
         _currentConversationKey = ConversationCoordinator.RoomKey(room.Id);
+        contactListControl.ClearUnread(room.Id, isRoom: true);
 
         chatPane.BindRoom(room, chat, members.Count);
         ShowPane();
@@ -152,6 +157,8 @@ public partial class MainWindow : Window
             bool isCurrent = e.ConversationKey == _currentConversationKey;
             if (isCurrent)
                 chatPane.AppendIncomingMessage(e.Sender, e.Message);
+            else
+                MarkConversationUnread(e.ConversationKey);
 
             // Notify unless the user is actively looking at exactly this conversation
             if (!isCurrent || !IsActive)
@@ -160,6 +167,35 @@ public partial class MainWindow : Window
                     e.Sender.DisplayName,
                     e.Message.Length > 50 ? e.Message[..50] + "..." : e.Message);
             }
+        });
+    }
+
+    /// <summary>Marks the buddy or room behind a conversation key as having an unread message, for the contact list badge.</summary>
+    private void MarkConversationUnread(string conversationKey)
+    {
+        if (conversationKey.StartsWith("buddy:"))
+            contactListControl.MarkUnread(conversationKey["buddy:".Length..], isRoom: false);
+        else if (conversationKey.StartsWith("room:"))
+            contactListControl.MarkUnread(conversationKey["room:".Length..], isRoom: true);
+    }
+
+    /// <summary>
+    /// The buddy's live chat session got replaced (see ConversationCoordinator.Register) —
+    /// if that conversation is the one currently showing, rebind the pane to it so sends go
+    /// out over the session that's actually connected to the peer, instead of the stale one
+    /// that was open when the collision happened.
+    /// </summary>
+    private void Conversations_ChatReplaced(object? sender, ChatReplacedEventArgs e)
+    {
+        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        {
+            if (e.ConversationKey != _currentConversationKey || _currentRoom != null)
+                return;
+
+            var buddyId = e.ConversationKey.StartsWith("buddy:") ? e.ConversationKey["buddy:".Length..] : null;
+            var buddy = buddyId != null ? _viewModel?.Buddies.FirstOrDefault(b => b.Id == buddyId) : null;
+            if (buddy != null)
+                chatPane.BindBuddy(buddy, e.Chat);
         });
     }
 
@@ -188,6 +224,8 @@ public partial class MainWindow : Window
             bool isCurrent = e.ConversationKey == _currentConversationKey;
             if (isCurrent)
                 chatPane.AppendIncomingFileMessage(e.SavedPath, e.FileName);
+            else
+                MarkConversationUnread(e.ConversationKey);
 
             // Notify unless the user is actively looking at exactly this conversation
             if (!isCurrent || !IsActive)
@@ -288,9 +326,11 @@ public partial class MainWindow : Window
         if (_forceClose)
             return;
 
-        // Minimize to tray instead of closing
+        // Minimize instead of closing — Hide() would drop the window from the taskbar
+        // entirely, leaving only the tray icon. Minimizing keeps a running-app button in
+        // the taskbar (and pinned-icon group) alongside the tray icon, restorable from either.
         e.Cancel = true;
-        Hide();
+        WindowState = WindowState.Minimized;
     }
 
     private async void SignInControl_LoginRequested(object? sender, LoginEventArgs e)

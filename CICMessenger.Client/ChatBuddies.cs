@@ -1,10 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
 using CICMessenger.Core;
 using CICMessenger.Core.Chat;
-using BuddyResolver = System.Func<string, CICMessenger.Client.Buddy>;
+using BuddyResolver = System.Func<string, CICMessenger.Client.Buddy?>;
 
 namespace CICMessenger.Client
 {
@@ -32,21 +33,21 @@ namespace CICMessenger.Client
             this.session.UserLeft += session_UserLeft;
         }
 
-        public bool TryGet(string clientId, out IBuddy? buddy)
+        public bool TryGet(string clientId, [MaybeNullWhen(false)] out IBuddy buddy)
         {
             return buddies.TryGetValue(clientId, out buddy);
         }
 
         void session_UserLeft(object? sender, Core.Chat.SessionEventArgs e)
         {
-            IBuddy buddy = RemoveBuddy(e.Sender.ClientID);
+            IBuddy? buddy = RemoveBuddy(e.Sender.ClientID);
             if (buddy != null)
                 BuddyLeft(this, new BuddyEventArgs(buddy));
         }
 
         void session_UserJoined(object? sender, Core.Chat.SessionEventArgs e)
         {
-            Buddy buddy = AddBuddy(e.Sender);
+            Buddy? buddy = AddBuddy(e.Sender);
             if (buddy != null)
                 BuddyJoined(this, new BuddyEventArgs(buddy));
         }
@@ -60,8 +61,9 @@ namespace CICMessenger.Client
 
         Buddy? AddBuddy(ICICMessengerEndPoint user)
         {
-            Buddy buddy = buddyResolver(user.ClientID);
-            AddBuddy(buddy);
+            Buddy? buddy = buddyResolver(user.ClientID);
+            if (buddy != null)
+                AddBuddy(buddy);
             return buddy;
         }
 
@@ -76,7 +78,7 @@ namespace CICMessenger.Client
 
         IBuddy? RemoveBuddy(string clientId)
         {
-            IBuddy buddy;
+            IBuddy? buddy;
             if (TryGet(clientId, out buddy))
                 buddy.PropertyChanged -= buddy_PropertyChanged;
             buddies.Remove(clientId);
@@ -85,9 +87,8 @@ namespace CICMessenger.Client
 
         void buddy_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
-            if (e.PropertyName == "ChatEndPoint")
+            if (e.PropertyName == "ChatEndPoint" && sender is Buddy buddy)
             {
-                var buddy = (Buddy)sender;
                 session.UpdateUser(new CICMessengerEndPoint(buddy.Id, buddy.ChatEndPoint));
             }
         }

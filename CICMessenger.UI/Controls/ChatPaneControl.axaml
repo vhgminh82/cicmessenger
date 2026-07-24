@@ -22,6 +22,10 @@
                             Padding="6,2" Background="Transparent" BorderThickness="0">
                         <TextBlock Text="📋" FontSize="15" />
                     </Button>
+                    <Button ToolTip.Tip="Xóa hội thoại" Click="DeleteConversation_Click"
+                            Padding="6,2" Background="Transparent" BorderThickness="0">
+                        <TextBlock Text="🗑" FontSize="15" />
+                    </Button>
                 </StackPanel>
             </Grid>
         </Border>

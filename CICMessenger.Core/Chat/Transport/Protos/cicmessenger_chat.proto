@@ -1,13 +1,10 @@
-// NOTE: the package and service names below are on-the-wire identifiers. They are
-// deliberately NOT renamed with the app, so this build keeps talking to peers
-// running older releases.
 syntax = "proto3";
 
-package squiggle.chat;
+package cicmessenger.chat;
 
 option csharp_namespace = "CICMessenger.Core.Chat.Transport.Grpc";
 
-service SquiggleChat {
+service CICMessengerChat {
   rpc SendChatMessage(ChatMessageEnvelope) returns (ChatResponse);
 }
 

@@ -81,18 +81,18 @@ public class FileTransferCoordinator
 
                 transfer.TransferCompleted += (_, _) =>
                 {
-                    Report(e.Buddy, $"Đã nhận file: {savePath}");
+                    Report(e.Buddy!, $"Đã nhận file: {savePath}");
                     Dispatcher.UIThread.Post(() => FileReceived?.Invoke(this, new FileReceivedEventArgs
                     {
-                        Buddy = e.Buddy,
+                        Buddy = e.Buddy!,
                         FilePath = savePath,
                         FileName = transfer.Name
                     }));
                 };
-                transfer.TransferCancelled += (_, _) => Report(e.Buddy, $"Đã hủy nhận file: {transfer.Name}");
-                transfer.Error += (_, err) => Report(e.Buddy, $"Lỗi nhận file {transfer.Name}: {err.GetException().Message}");
+                transfer.TransferCancelled += (_, _) => Report(e.Buddy!, $"Đã hủy nhận file: {transfer.Name}");
+                transfer.Error += (_, err) => Report(e.Buddy!, $"Lỗi nhận file {transfer.Name}: {err.GetException().Message}");
 
-                Report(e.Buddy, $"Đang nhận file: {transfer.Name}");
+                Report(e.Buddy!, $"Đang nhận file: {transfer.Name}");
                 transfer.Accept(savePath);
             }
             catch (Exception ex)

@@ -105,6 +105,8 @@ Bạn có chắc chắn muốn đóng cửa sổ này không?</sys:String>
     <sys:String x:Key="SettingsWindow_ChatTab_SpellCheck">Bật kiểm tra chính tả</sys:String>
     <sys:String x:Key="SettingsWindow_ChatTab_StealFocusOnNewMessage">Tự động focus khi có tin nhắn mới.</sys:String>
     <sys:String x:Key="SettingsWindow_ChatTab_ClearChatOnWindowClose">Xóa nội dung trò chuyện khi đóng cửa sổ.</sys:String>
+    <sys:String x:Key="SettingsWindow_ChatTab_AutoDeleteMessages">Tự động xóa tin nhắn sau một khoảng thời gian</sys:String>
+    <sys:String x:Key="SettingsWindow_ChatTab_AutoDeleteAfter">Xóa sau:</sys:String>
     <sys:String x:Key="SettingsWindow_ContactsTab_Heading">Danh bạ</sys:String>
     <sys:String x:Key="SettingsWindow_ContactsTab_SubHeading">Cài đặt danh bạ</sys:String>
     <sys:String x:Key="SettingsWindow_ContactsTab_SortBy">Sắp xếp danh bạ theo:</sys:String>

@@ -79,7 +79,7 @@ namespace CICMessenger.Core.Presence
             lock (aliveUsers)
                 aliveUsers.Clear();
 
-            timer.Stop();
+            timer?.Stop();
             timer = null;
         }
 
@@ -90,7 +90,7 @@ namespace CICMessenger.Core.Presence
 
         void timer_Elapsed(object? sender, ElapsedEventArgs e)
         {
-            if ((DateTime.UtcNow - lastKeepAliveMessage).TotalMilliseconds < timer.Interval / 2)
+            if ((DateTime.UtcNow - lastKeepAliveMessage).TotalMilliseconds < timer!.Interval / 2)
                 return;
 
             lastKeepAliveMessage = DateTime.UtcNow;

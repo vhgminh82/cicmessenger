@@ -7,6 +7,8 @@
         <converters:StatusConverter x:Key="statusConverter" />
         <converters:StatusBrushConverter x:Key="statusBrushConverter" />
         <converters:MachineInfoConverter x:Key="machineInfoConverter" />
+        <converters:UnreadBadgeConverter x:Key="unreadBadgeConverter" />
+        <converters:UnreadFontWeightConverter x:Key="unreadWeightConverter" />
     </UserControl.Resources>
 
     <DockPanel>
@@ -56,7 +58,13 @@
                     <DataTemplate>
                         <Grid ColumnDefinitions="Auto,*" Margin="4,6">
                             <Border Grid.Column="0" Width="10" Height="10" CornerRadius="5" Background="#3D7EFF" />
-                            <TextBlock Grid.Column="1" Margin="8,0,0,0" Text="{Binding Name}" FontSize="14" />
+                            <StackPanel Grid.Column="1" Margin="8,0,0,0" Orientation="Horizontal">
+                                <TextBlock Text="{Binding Name}" FontSize="14"
+                                           FontWeight="{Binding ., Converter={StaticResource unreadWeightConverter}}" />
+                                <TextBlock Text="{Binding ., Converter={StaticResource unreadBadgeConverter}}"
+                                           FontSize="12" FontWeight="SemiBold"
+                                           Foreground="{DynamicResource SystemControlForegroundAccentBrush}" />
+                            </StackPanel>
                         </Grid>
                     </DataTemplate>
                 </ListBox.ItemTemplate>
@@ -86,7 +94,13 @@
                                  Fill="{Binding Status, Converter={StaticResource statusBrushConverter}}" />
                         <!-- Contact info -->
                         <StackPanel Grid.Column="1" Margin="8,0,0,0">
-                            <TextBlock Text="{Binding DisplayName}" FontSize="14" />
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="{Binding DisplayName}" FontSize="14"
+                                           FontWeight="{Binding ., Converter={StaticResource unreadWeightConverter}}" />
+                                <TextBlock Text="{Binding ., Converter={StaticResource unreadBadgeConverter}}"
+                                           FontSize="12" FontWeight="SemiBold"
+                                           Foreground="{DynamicResource SystemControlForegroundAccentBrush}" />
+                            </StackPanel>
                             <TextBlock Text="{Binding ., Converter={StaticResource machineInfoConverter}}"
                                        FontSize="10" FontStyle="Italic"
                                        Foreground="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"

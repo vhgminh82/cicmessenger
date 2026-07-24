@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Net;
-using System.Text;
+using System.Net.Http;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Web;
@@ -12,10 +10,7 @@ namespace CICMessenger.Translate
 {
     class GoogleTranslator
     {
-        static readonly JsonSerializerOptions jsonOptions = new()
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-        };
+        static readonly HttpClient httpClient = new();
 
         string apiKey;
 
@@ -26,7 +21,7 @@ namespace CICMessenger.Translate
 
         public string Translate(string fromLanguage, string toLanguage, string text)
         {
-            string detectedLanguage;
+            string? detectedLanguage;
             return Translate(fromLanguage, toLanguage, text, out detectedLanguage);
         }
 
@@ -48,19 +43,14 @@ namespace CICMessenger.Translate
 
             string url = String.Format(apiUrl, apiKey, toLanguage, text, fromLanguage);
 
-            WebRequest request = HttpWebRequest.Create(url);
-            request.Method = "GET";
-
-            using (WebResponse respone = request.GetResponse())
-            using (var reader = new StreamReader(respone.GetResponseStream()!, Encoding.UTF8))
-                text = reader.ReadToEnd();
+            text = httpClient.GetStringAsync(url).GetAwaiter().GetResult();
 
             string translatedText = String.Empty;
 
-            var result = JsonSerializer.Deserialize<TranslateResult>(text, jsonOptions)!;
+            var result = JsonSerializer.Deserialize(text, TranslateJsonContext.Default.TranslateResult)!;
             if (result.Data.Translations.Any())
             {
-                var translation = result.Data.Translations.FirstOrDefault();
+                var translation = result.Data.Translations.First();
                 detectedLanguage = translation.DetectedSourceLanguage;
                 translatedText = translation.TranslatedText;
             }
@@ -83,5 +73,11 @@ namespace CICMessenger.Translate
     {
         public string TranslatedText { get; set; } = null!;
         public string? DetectedSourceLanguage { get; set; }
+    }
+
+    [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
+    [JsonSerializable(typeof(TranslateResult))]
+    partial class TranslateJsonContext : JsonSerializerContext
+    {
     }
 }

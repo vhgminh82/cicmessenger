@@ -82,7 +82,7 @@ namespace CICMessenger.Core.Chat
             get 
             { 
                 lock (remoteUsers)
-                    return remoteUsers.Values.FirstOrDefault(); 
+                    return remoteUsers.Values.First();
             }
         }
 

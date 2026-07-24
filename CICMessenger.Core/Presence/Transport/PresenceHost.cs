@@ -81,7 +81,7 @@ namespace CICMessenger.Core.Presence.Transport
             try
             {
                 using var client = new TcpClient();
-                client.Connect(message.Recipient.Address);
+                client.Connect(message.Recipient!.Address);
                 using var stream = client.GetStream();
                 var lengthBytes = BitConverter.GetBytes(data.Length);
                 stream.Write(lengthBytes, 0, 4);

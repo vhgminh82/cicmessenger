@@ -9,7 +9,7 @@ namespace CICMessenger.Core.Presence
         IDictionary<string, string> dictionary;
 
         public static readonly string DefaultGroupName = "Others";
-        public event PropertyChangedEventHandler PropertyChanged = delegate { };
+        public event PropertyChangedEventHandler? PropertyChanged = delegate { };
 
         public BuddyProperties(IDictionary<string, string> properties)
         {
@@ -32,7 +32,7 @@ namespace CICMessenger.Core.Presence
             set
             {
                 dictionary[key] = value!;
-                PropertyChanged(this, new PropertyChangedEventArgs(key));
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(key));
             }
         }
 
@@ -40,7 +40,7 @@ namespace CICMessenger.Core.Presence
         {
             get 
             { 
-                string groupName = this["GroupName"];
+                string? groupName = this["GroupName"];
                 return String.IsNullOrEmpty(groupName) ? DefaultGroupName : groupName;
             }
             set { this["GroupName"] = (value ?? "").Trim(); }
@@ -62,7 +62,7 @@ namespace CICMessenger.Core.Presence
         {
             get 
             { 
-                string image = this["DisplayImage"];
+                string? image = this["DisplayImage"];
                 if (String.IsNullOrEmpty(image))
                     return null;
                 else

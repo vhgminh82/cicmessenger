@@ -8,6 +8,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Platform.Storage;
+using Avalonia.Threading;
 using Microsoft.Extensions.DependencyInjection;
 using CICMessenger.Client;
 using CICMessenger.Client.Activities;
@@ -32,6 +33,9 @@ public class ChatMessage
     public string SenderName { get; init; } = "";
     public string Text { get; init; } = "";
     public string Timestamp { get; init; } = "";
+
+    /// <summary>When this message was sent/received, used by the auto-delete sweep to age messages out of the visible pane.</summary>
+    public DateTime SentAt { get; init; } = DateTime.Now;
     public IBrush Background { get; init; } = Brushes.Transparent;
     public ChatMessageKind Kind { get; init; } = ChatMessageKind.Text;
     public string? FilePath { get; init; }
@@ -84,6 +88,29 @@ public partial class ChatPaneControl : UserControl
         // insert a newline, so a normal (bubbling) KeyDown handler never sees it. Hook the
         // tunnel route instead so Enter reaches us first and can send the message.
         txtMessage.AddHandler(KeyDownEvent, TxtMessage_KeyDown, RoutingStrategies.Tunnel);
+
+        // Off by default (ChatSettingsViewModel.AutoDeleteMessages) — when on, ages expired
+        // messages out of the visible pane. The actual history-DB purge runs separately in
+        // AutoDeleteService so conversations that aren't currently open still expire.
+        _autoDeleteTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
+        _autoDeleteTimer.Tick += (_, _) => PruneExpiredMessages();
+        _autoDeleteTimer.Start();
+    }
+
+    private readonly DispatcherTimer _autoDeleteTimer;
+
+    private void PruneExpiredMessages()
+    {
+        var settings = App.Services.GetService<SettingsService>()?.Load().ChatSettings;
+        if (settings == null || !settings.AutoDeleteMessages)
+            return;
+
+        var cutoff = DateTime.Now - settings.GetAutoDeleteTimeSpan();
+        for (int i = _messages.Count - 1; i >= 0; i--)
+        {
+            if (_messages[i].SentAt < cutoff)
+                _messages.RemoveAt(i);
+        }
     }
 
     /// <summary>Switches the pane to a one-to-one conversation with <paramref name="buddy"/>.</summary>
@@ -174,7 +201,8 @@ public partial class ChatPaneControl : UserControl
                 bool isOwn = selfId != null && evnt.SenderId == selfId;
                 var background = new SolidColorBrush(Color.Parse(isOwn ? "#DCF8C6" : "#E3F2FD"));
                 var senderName = isOwn ? youLabel : evnt.SenderName;
-                var timestamp = evnt.Stamp.ToLocalTime().ToString("dd/MM HH:mm");
+                var sentAt = evnt.Stamp.ToLocalTime();
+                var timestamp = sentAt.ToString("dd/MM HH:mm");
 
                 if (evnt.Type == CICMessenger.History.DAL.Entities.EventType.File)
                 {
@@ -196,6 +224,7 @@ public partial class ChatPaneControl : UserControl
                         SenderName = senderName,
                         Text = exists ? fileName : $"{fileName} ({FindTranslation("ChatWindow_FileNoLongerAvailable", "File không còn tồn tại")})",
                         Timestamp = timestamp,
+                        SentAt = sentAt,
                         Background = background,
                         Kind = kind,
                         FilePath = exists ? filePath : null,
@@ -210,6 +239,7 @@ public partial class ChatPaneControl : UserControl
                         SenderName = senderName,
                         Text = evnt.Data,
                         Timestamp = timestamp,
+                        SentAt = sentAt,
                         Background = background,
                         IsOwn = isOwn
                     });
@@ -647,6 +677,38 @@ public partial class ChatPaneControl : UserControl
                     ? $"[{m.Timestamp}] {m.Text}"
                     : $"[{m.Timestamp}] {m.SenderName}: {m.Text}"));
         await clipboard.CopyTextAsync(text);
+    }
+
+    private async void DeleteConversation_Click(object? sender, RoutedEventArgs e)
+    {
+        if (_buddy == null && _room == null)
+            return;
+
+        var dialogService = App.Services.GetRequiredService<IDialogService>();
+        var confirmed = await dialogService.ShowMessageBoxAsync(
+            "Xóa hội thoại",
+            $"Xóa toàn bộ lịch sử trò chuyện với \"{ConversationName}\"? Hành động này không thể hoàn tác.",
+            MessageBoxButton.YesNo);
+
+        if (confirmed != MessageBoxResult.Yes)
+            return;
+
+        var history = App.Services.GetService<CICMessenger.History.HistoryManager>();
+        if (history != null)
+        {
+            if (_buddy != null)
+            {
+                var sessionIds = history.GetSessions(new CICMessenger.History.DAL.SessionCriteria { Participant = _buddy.Id })
+                    .Select(s => s.Id);
+                history.DeleteSessions(sessionIds);
+            }
+            else if (_room != null)
+            {
+                history.DeleteSessions(new[] { _room.Id });
+            }
+        }
+
+        _messages.Clear();
     }
 
     private string FindTranslation(string key, string fallback)

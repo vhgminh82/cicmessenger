@@ -27,7 +27,7 @@ namespace CICMessenger.Core.Presence.Transport
     {
         IMulticastService multicastService;
         IPEndPoint serviceEndPoint;
-        PresenceHost host = null!;
+        PresenceHost? host;
 
         public event EventHandler<MessageReceivedEventArgs> MessageReceived = delegate { };
 
@@ -52,7 +52,7 @@ namespace CICMessenger.Core.Presence.Transport
 
         public void Stop()
         {
-            host.Dispose();
+            host?.Dispose();
             host = null;
 
             multicastService.MessageReceived -= multicastService_MessageReceived;
@@ -72,7 +72,7 @@ namespace CICMessenger.Core.Presence.Transport
 
             ExceptionMonster.EatTheException(() =>
             {
-                host.Send(message);
+                host!.Send(message);
             }, "sending presence message to " + message.Recipient);
         }
 

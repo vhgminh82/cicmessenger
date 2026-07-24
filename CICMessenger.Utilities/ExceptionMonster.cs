@@ -12,7 +12,7 @@ namespace CICMessenger.Utilities
 
         public static bool EatTheException(Action action, string actionDescription)
         {
-            Exception ex;
+            Exception? ex;
             return EatTheException(action, actionDescription, out ex);
         }
 
@@ -29,9 +29,9 @@ namespace CICMessenger.Utilities
 
         public static T EatTheException<T>(Func<T> action, string actionDescription)
         {
-            Exception ex;
+            Exception? ex;
             bool success;
-            return EatTheException(action, actionDescription, out success, out ex);
+            return EatTheException(action, actionDescription, out success, out ex)!;
         }
 
         public static T? EatTheException<T>(Func<T> action, string actionDescription, out bool success, out Exception? ex)

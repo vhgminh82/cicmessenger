@@ -39,8 +39,7 @@ namespace CICMessenger.Client
             {
                 lock (buddies)
                 {
-                    Buddy buddy = buddies.FirstOrDefault(b => b.Id.Equals(id));
-                    return buddy;
+                    return buddies.FirstOrDefault(b => b.Id.Equals(id));
                 }
             }
         }

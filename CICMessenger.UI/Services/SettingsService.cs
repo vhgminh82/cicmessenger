@@ -21,11 +21,6 @@ public class SettingsService
     private static readonly string SettingsFile = Path.Combine(SettingsFolder, "settings.json");
     private static readonly string ClientIdFile = Path.Combine(SettingsFolder, "clientid.txt");
 
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        WriteIndented = true
-    };
-
     public SettingsViewModel Load()
     {
         try
@@ -33,7 +28,7 @@ public class SettingsService
             if (File.Exists(SettingsFile))
             {
                 var json = File.ReadAllText(SettingsFile);
-                return JsonSerializer.Deserialize<SettingsViewModel>(json, JsonOptions) ?? new SettingsViewModel();
+                return JsonSerializer.Deserialize(json, AppJsonContext.Default.SettingsViewModel) ?? new SettingsViewModel();
             }
         }
         catch
@@ -49,7 +44,7 @@ public class SettingsService
         try
         {
             Directory.CreateDirectory(SettingsFolder);
-            var json = JsonSerializer.Serialize(settings, JsonOptions);
+            var json = JsonSerializer.Serialize(settings, AppJsonContext.Default.SettingsViewModel);
             File.WriteAllText(SettingsFile, json);
         }
         catch

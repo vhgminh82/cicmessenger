@@ -1,13 +1,14 @@
 using System;
 using System.Net;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using FluentAssertions;
 using CICMessenger.Utilities.Serialization;
 using Xunit;
 
 namespace CICMessenger.Tests.UtilitiesTests
 {
-    public class SerializationHelperTests
+    public partial class SerializationHelperTests
     {
         public class TestPayload
         {
@@ -16,6 +17,11 @@ namespace CICMessenger.Tests.UtilitiesTests
             public string Name { get; set; } = null!;
 
             public double Value { get; set; }
+        }
+
+        [JsonSerializable(typeof(TestPayload))]
+        partial class TestPayloadJsonContext : JsonSerializerContext
+        {
         }
 
         [Fact]
@@ -27,7 +33,7 @@ namespace CICMessenger.Tests.UtilitiesTests
 
             bytes.Should().NotBeNullOrEmpty();
 
-            var deserialized = JsonSerializer.Deserialize<TestPayload>(bytes);
+            var deserialized = JsonSerializer.Deserialize(bytes, TestPayloadJsonContext.Default.TestPayload);
 
             deserialized!.Id.Should().Be(42);
             deserialized.Name.Should().Be("test");

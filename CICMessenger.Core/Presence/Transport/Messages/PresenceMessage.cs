@@ -28,7 +28,7 @@ namespace CICMessenger.Core.Presence.Transport.Messages
                 ChatEndPoint = user.ChatEndPoint,
                 Sender = new CICMessengerEndPoint(user.ID, user.PresenceEndPoint),
                 Status = user.Status,                
-                Properties = user.Properties,
+                Properties = user.Properties ?? new Dictionary<string, string>(),
                 KeepAliveSyncTime = user.KeepAliveSyncTime,
                 DisplayName = user.DisplayName
             };

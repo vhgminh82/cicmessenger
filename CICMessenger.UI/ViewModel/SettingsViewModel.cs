@@ -97,6 +97,25 @@ public class ChatSettingsViewModel : ViewModelBase
 
     private bool _enableLogging = true;
     public bool EnableLogging { get => _enableLogging; set => Set(ref _enableLogging, value); }
+
+    /// <summary>Off by default — auto-deletes messages older than <see cref="AutoDeleteValue"/> <see cref="AutoDeleteUnit"/>.</summary>
+    private bool _autoDeleteMessages;
+    public bool AutoDeleteMessages { get => _autoDeleteMessages; set => Set(ref _autoDeleteMessages, value); }
+
+    private int _autoDeleteValue = 60;
+    public int AutoDeleteValue { get => _autoDeleteValue; set => Set(ref _autoDeleteValue, value); }
+
+    /// <summary>One of "Seconds", "Minutes", "Hours".</summary>
+    private string _autoDeleteUnit = "Minutes";
+    public string AutoDeleteUnit { get => _autoDeleteUnit; set => Set(ref _autoDeleteUnit, value); }
+
+    /// <summary>Resolves <see cref="AutoDeleteValue"/>/<see cref="AutoDeleteUnit"/> into a duration, ignoring <see cref="AutoDeleteMessages"/>.</summary>
+    public System.TimeSpan GetAutoDeleteTimeSpan() => AutoDeleteUnit switch
+    {
+        "Seconds" => System.TimeSpan.FromSeconds(AutoDeleteValue),
+        "Hours" => System.TimeSpan.FromHours(AutoDeleteValue),
+        _ => System.TimeSpan.FromMinutes(AutoDeleteValue),
+    };
 }
 
 public class ContactSettingsViewModel : ViewModelBase

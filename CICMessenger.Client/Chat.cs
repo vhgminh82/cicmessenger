@@ -11,7 +11,7 @@ using CICMessenger.Core.Chat;
 using CICMessenger.History;
 using CICMessenger.History.DAL;
 using CICMessenger.Utilities;
-using BuddyResolver = System.Func<string, CICMessenger.Client.Buddy>;
+using BuddyResolver = System.Func<string, CICMessenger.Client.Buddy?>;
 using CICMessenger.Core.Chat.Activity;
 using CICMessenger.Utilities.Threading;
 using CICMessenger.History.DAL.Entities;
@@ -192,7 +192,7 @@ namespace CICMessenger.Client
 
         void session_ActivityInviteReceived(object? sender, ActivityInivteReceivedEventArgs e)
         {
-            IBuddy buddy;
+            IBuddy? buddy;
             if (buddies.TryGet(e.Sender.ClientID, out buddy))
             {
                 var args = new ActivityInvitationReceivedEventArgs(buddy)
@@ -208,7 +208,7 @@ namespace CICMessenger.Client
 
         void session_BuzzReceived(object? sender, CICMessenger.Core.Chat.SessionEventArgs e)
         {
-            IBuddy buddy;
+            IBuddy? buddy;
             if (buddies.TryGet(e.Sender.ClientID, out buddy))
             {
                 BuzzReceived(this, new BuddyEventArgs(buddy));
@@ -218,7 +218,7 @@ namespace CICMessenger.Client
 
         void session_UserTyping(object? sender, CICMessenger.Core.Chat.SessionEventArgs e)
         {
-            IBuddy buddy;
+            IBuddy? buddy;
             if (buddies.TryGet(e.Sender.ClientID, out buddy))
                 BuddyTyping(this, new BuddyEventArgs( buddy ));
         }
@@ -237,7 +237,7 @@ namespace CICMessenger.Client
 
         void session_MessageReceived(object? sender, CICMessenger.Core.Chat.TextMessageReceivedEventArgs e)
         {
-            IBuddy buddy;
+            IBuddy? buddy;
             if (buddies.TryGet(e.Sender.ClientID, out buddy))
             {
                 MessageReceived(this, new ChatMessageReceivedEventArgs()
@@ -256,7 +256,7 @@ namespace CICMessenger.Client
 
         void session_MessageUpdated(object? sende, CICMessenger.Core.Chat.TextMessageUpdatedEventArgs e)
         {
-            IBuddy buddy;
+            IBuddy? buddy;
             if (buddies.TryGet(e.Sender.ClientID, out buddy))
             {
                 MessageUpdated(this, new ChatMessageUpdatedEventArgs()
@@ -289,7 +289,7 @@ namespace CICMessenger.Client
             {
                 if (!sessionLogged)
                     LogSessionStart();
-                manager.AddSessionEvent(HistorySessionId, eventType, sender.Id, sender.DisplayName, buddies.Select(b => b.Id), data);
+                manager.AddSessionEvent(HistorySessionId, eventType, sender.Id, sender.DisplayName, buddies.Select(b => b.Id), data ?? string.Empty);
             });
         }
 
@@ -298,12 +298,12 @@ namespace CICMessenger.Client
             DoHistoryAction(manager =>
             {
                 sessionLogged = true;
-                IBuddy primaryBuddy = Buddies.FirstOrDefault();
+                IBuddy? primaryBuddy = Buddies.FirstOrDefault();
                 var newSession = new Session()
                 {
                     Id = HistorySessionId,
-                    ContactId = roomId ?? primaryBuddy.Id,
-                    ContactName = roomName ?? primaryBuddy.DisplayName,
+                    ContactId = roomId ?? primaryBuddy?.Id ?? self.Id,
+                    ContactName = roomName ?? primaryBuddy?.DisplayName ?? self.DisplayName,
                     Start = DateTime.Now
                 };
 

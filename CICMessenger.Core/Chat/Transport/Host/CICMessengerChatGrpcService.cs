@@ -14,7 +14,7 @@ namespace CICMessenger.Core.Chat.Transport.Host
     /// gRPC service implementation that receives incoming chat messages from peers
     /// and raises typed events on the owning ChatHost.
     /// </summary>
-    class CICMessengerChatGrpcService : SquiggleChat.SquiggleChatBase
+    class CICMessengerChatGrpcService : CICMessengerChat.CICMessengerChatBase
     {
         readonly ChatHost chatHost;
         readonly ILogger logger;

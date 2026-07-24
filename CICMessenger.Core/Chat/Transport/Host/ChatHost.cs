@@ -221,7 +221,7 @@ namespace CICMessenger.Core.Chat.Transport.Host
                 });
             });
 
-            var client = new SquiggleChat.SquiggleChatClient(channel);
+            var client = new CICMessengerChat.CICMessengerChatClient(channel);
             client.SendChatMessage(envelope);
         }
 

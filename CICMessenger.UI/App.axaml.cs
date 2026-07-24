@@ -95,6 +95,7 @@ public partial class App : Application
         services.AddSingleton<RoomsService>();
         services.AddSingleton<FileTransferCoordinator>();
         services.AddSingleton<ConversationCoordinator>();
+        services.AddSingleton<AutoDeleteService>();
 
         return services.BuildServiceProvider();
     }
