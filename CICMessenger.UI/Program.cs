@@ -13,7 +13,12 @@ class Program
     [STAThread]
     public static void Main(string[] args)
     {
-        const string mutexName = "CICMessenger_SingleInstance";
+        // CICMESSENGER_INSTANCE lets multiple instances run side by side on one machine
+        // (e.g. for local P2P testing without a second physical machine).
+        var instanceId = Environment.GetEnvironmentVariable("CICMESSENGER_INSTANCE");
+        var mutexName = string.IsNullOrEmpty(instanceId)
+            ? "CICMessenger_SingleInstance"
+            : $"CICMessenger_SingleInstance_{instanceId}";
         _singleInstanceMutex = new Mutex(true, mutexName, out bool createdNew);
 
         if (!createdNew)

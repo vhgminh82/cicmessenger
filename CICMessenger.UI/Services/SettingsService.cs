@@ -7,9 +7,13 @@ namespace CICMessenger.UI.Services;
 
 public class SettingsService
 {
+    // CICMESSENGER_INSTANCE isolates settings/identity per instance so several copies
+    // can run side by side on one machine (e.g. for local P2P testing).
     private static readonly string SettingsFolder = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-        "CICMessenger");
+        string.IsNullOrEmpty(Environment.GetEnvironmentVariable("CICMESSENGER_INSTANCE"))
+            ? "CICMessenger"
+            : $"CICMessenger_{Environment.GetEnvironmentVariable("CICMESSENGER_INSTANCE")}");
 
     private static readonly string SettingsFile = Path.Combine(SettingsFolder, "settings.json");
     private static readonly string ClientIdFile = Path.Combine(SettingsFolder, "clientid.txt");
