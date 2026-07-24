@@ -337,10 +337,13 @@ public partial class MainWindow : Window
 
             try
             {
+                updateService.Progress += (msg, pct) => Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+                    versionLabel.Text = pct >= 0 ? $"{msg} {pct}%" : msg);
                 await updateService.DownloadAndApplyAsync(update);
             }
             catch (Exception ex)
             {
+                versionLabel.Text = "V" + UpdateService.DisplayVersion;
                 await ShowUpdateMessageAsync(
                     FindTranslation("Update_Failed", "Could not download the update.") + $"\n\n{ex.Message}");
                 return;

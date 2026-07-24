@@ -9,22 +9,7 @@ permissions:
 
 jobs:
   build:
-    strategy:
-      matrix:
-        include:
-          - os: [self-hosted, Linux]
-            rid: linux-x64
-            artifact: CICMessenger-linux-x64
-          - os: [self-hosted, Linux]
-            rid: win-x64
-            artifact: CICMessenger-win-x64
-          - os: macos-latest
-            rid: osx-x64
-            artifact: CICMessenger-osx-x64
-          - os: macos-latest
-            rid: osx-arm64
-            artifact: CICMessenger-osx-arm64
-    runs-on: ${{ matrix.os }}
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
 
@@ -34,53 +19,56 @@ jobs:
 
       - name: Get version from tag
         id: version
-        run: echo "version=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+        shell: bash
+        run: |
+          ver="${GITHUB_REF_NAME#v}"
+          echo "version=$ver" >> "$GITHUB_OUTPUT"
+          echo "display=v$(echo "$ver" | cut -d. -f1).$(echo "$ver" | cut -d. -f2)" >> "$GITHUB_OUTPUT"
 
+      # Folder publish (NOT single-file): the app is a folder so updates can replace
+      # only the couple of MB of app assemblies, not the whole ~60MB runtime.
       - name: Publish
         run: >
           dotnet publish CICMessenger.UI/CICMessenger.UI.csproj
           --configuration Release
-          --runtime ${{ matrix.rid }}
+          --runtime win-x64
           --self-contained true
-          -p:PublishSingleFile=true
+          -p:PublishSingleFile=false
           -p:PublishTrimmed=false
           -p:Version=${{ steps.version.outputs.version }}
-          -p:IncludeNativeLibrariesForSelfExtract=true
-          --output ./publish
+          --output ./publish/CICMessenger
 
-      - name: Package (zip for Windows target)
-        if: contains(matrix.rid, 'win')
-        run: cd ./publish && zip -r ../${{ matrix.artifact }}.zip .
+      # Per-file SHA256 manifest consumed by the in-app differential updater.
+      - name: Generate manifest and assets
+        shell: pwsh
+        run: |
+          $appDir = "./publish/CICMessenger"
+          $assetDir = "./assets"
+          New-Item -ItemType Directory -Path $assetDir | Out-Null
 
-      - name: Package (tar.gz for Linux/macOS)
-        if: "!contains(matrix.rid, 'win')"
-        run: tar -czf ./${{ matrix.artifact }}.tar.gz -C ./publish .
+          $files = @()
+          Get-ChildItem $appDir -Recurse -File | ForEach-Object {
+            $rel = $_.FullName.Substring((Resolve-Path $appDir).Path.Length + 1) -replace "\\","/"
+            if ($rel -eq "manifest.json") { return }
+            $hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower()
+            $files += [ordered]@{ path = $rel; sha256 = $hash; size = $_.Length }
+          }
+          $manifest = [ordered]@{ version = "${{ steps.version.outputs.version }}"; tag = "${{ github.ref_name }}"; files = $files }
+          $manifestPath = Join-Path $appDir "manifest.json"
+          $manifest | ConvertTo-Json -Depth 5 | Set-Content $manifestPath -Encoding UTF8
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.artifact }}
-          path: |
-            ./${{ matrix.artifact }}.zip
-            ./${{ matrix.artifact }}.tar.gz
-          if-no-files-found: ignore
+          # manifest + individual app files (small, change every release)
+          Copy-Item $manifestPath (Join-Path $assetDir "manifest.json")
+          Get-ChildItem $appDir -File | Where-Object { $_.Name -like "CICMessenger*" -and $_.Name -ne "manifest.json" } |
+            ForEach-Object { Copy-Item $_.FullName (Join-Path $assetDir $_.Name) }
 
-  release:
-    needs: build
-    runs-on: [self-hosted, Linux]
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: ./artifacts
+          # full zip (first install / when a runtime file changes)
+          Compress-Archive -Path (Join-Path $appDir "*") `
+            -DestinationPath (Join-Path $assetDir "CICMessenger-${{ steps.version.outputs.display }}-full.zip") -Force
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
           prerelease: ${{ contains(github.ref_name, '-beta') || contains(github.ref_name, '-rc') || contains(github.ref_name, '-alpha') }}
-          files: |
-            ./artifacts/**/*.zip
-            ./artifacts/**/*.tar.gz
+          files: ./assets/*
