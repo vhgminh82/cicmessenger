@@ -151,6 +151,9 @@ public class UpdateService
     async Task<List<ManifestEntry>> GetManifestAsync(string url)
     {
         var json = await http.GetStringAsync(url);
+        // Some editors/PowerShell write a UTF-8 BOM, which JsonDocument.Parse rejects as an
+        // invalid start of value. Strip it so a BOM in the manifest can't break updates.
+        json = json.TrimStart('﻿');
         using var doc = JsonDocument.Parse(json);
         var files = new List<ManifestEntry>();
         foreach (var f in doc.RootElement.GetProperty("files").EnumerateArray())

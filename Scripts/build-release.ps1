@@ -47,7 +47,9 @@ Get-ChildItem $appDir -Recurse -File | ForEach-Object {
 }
 $manifest = [ordered]@{ version = $version; tag = $tag; files = $files }
 $manifestPath = Join-Path $appDir "manifest.json"
-$manifest | ConvertTo-Json -Depth 5 | Set-Content $manifestPath -Encoding UTF8
+# Write UTF-8 WITHOUT a BOM — a BOM makes JsonDocument.Parse in the updater throw.
+[System.IO.File]::WriteAllText($manifestPath, ($manifest | ConvertTo-Json -Depth 5),
+    (New-Object System.Text.UTF8Encoding $false))
 Write-Host "  $($files.Count) files listed" -ForegroundColor Gray
 
 # --- assemble release assets ---
