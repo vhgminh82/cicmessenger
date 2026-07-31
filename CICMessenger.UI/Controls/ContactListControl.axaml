@@ -71,6 +71,8 @@
                 <ListBox.ContextMenu>
                     <ContextMenu>
                         <MenuItem Header="{DynamicResource RoomList_Rename}" Click="RenameRoom_Click" />
+                        <MenuItem Header="{DynamicResource RoomList_AddMembers}" Click="AddMembers_Click" />
+                        <MenuItem Header="{DynamicResource RoomList_RemoveMembers}" Click="RemoveMembers_Click" />
                         <MenuItem Header="{DynamicResource RoomList_Delete}" Click="DeleteRoom_Click" />
                     </ContextMenu>
                 </ListBox.ContextMenu>

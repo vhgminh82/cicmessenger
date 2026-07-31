@@ -1,0 +1,23 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="CICMessenger.UI.Windows.LogViewerWindow"
+        Icon="avares://CICMessenger/Assets/cic-logo.ico"
+        Title="{DynamicResource LogViewer_Title}"
+        Width="820" Height="560"
+        WindowStartupLocation="CenterOwner">
+    <Grid Margin="8" RowDefinitions="Auto,*">
+        <Grid Grid.Row="0" ColumnDefinitions="Auto,Auto,*,Auto,Auto" Margin="0,0,0,8">
+            <TextBlock Grid.Column="0" Text="{DynamicResource LogViewer_File}" VerticalAlignment="Center" Margin="0,0,8,0" />
+            <ComboBox Grid.Column="1" x:Name="fileCombo" MinWidth="220"
+                      SelectionChanged="FileCombo_SelectionChanged" />
+            <CheckBox Grid.Column="3" x:Name="errorsOnlyCheck" Content="{DynamicResource LogViewer_ErrorsOnly}"
+                      Margin="12,0" Click="ErrorsOnlyCheck_Click" />
+            <Button Grid.Column="4" Content="{DynamicResource LogViewer_Refresh}" Click="Refresh_Click" />
+        </Grid>
+
+        <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+            <TextBox x:Name="logText" IsReadOnly="True" AcceptsReturn="True" TextWrapping="NoWrap"
+                     FontFamily="Consolas,Cascadia Mono,monospace" FontSize="12" />
+        </ScrollViewer>
+    </Grid>
+</Window>

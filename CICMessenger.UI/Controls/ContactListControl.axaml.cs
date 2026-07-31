@@ -160,7 +160,12 @@ public partial class ContactListControl : UserControl
         if (result == null)
             return;
 
-        var room = new Room { Name = result.Name, MemberIds = result.Members.Select(b => b.Id).ToList() };
+        var room = new Room
+        {
+            Name = result.Name,
+            MemberIds = result.Members.Select(b => b.Id).ToList(),
+            CreatorId = chatClient.CurrentUser.Id
+        };
         var all = Rooms.Load();
         all.Add(room);
         Rooms.Save(all);
@@ -202,10 +207,90 @@ public partial class ContactListControl : UserControl
     /// <summary>Raised after a room is renamed, so the currently open conversation's header/history can update.</summary>
     public event System.EventHandler<Room>? RoomRenamed;
 
-    private void DeleteRoom_Click(object? sender, RoutedEventArgs e)
+    /// <summary>Raised after a room's member list changes, so the currently open conversation can re-resolve members.</summary>
+    public event System.EventHandler<Room>? RoomMembersChanged;
+
+    /// <summary>Rooms saved before <see cref="Room.CreatorId"/> existed have an empty value; treat those as owned by whoever opens them.</summary>
+    private static bool IsOwnedByCurrentUser(Room room, IChatClient chatClient)
+        => string.IsNullOrEmpty(room.CreatorId) || room.CreatorId == chatClient.CurrentUser.Id;
+
+    private async void AddMembers_Click(object? sender, RoutedEventArgs e)
     {
         if (roomsList.SelectedItem is not Room room)
             return;
+
+        var topLevel = TopLevel.GetTopLevel(this);
+        if (topLevel is not Window owner)
+            return;
+
+        var chatClient = App.Services.GetRequiredService<IChatClient>();
+        var candidates = chatClient.Buddies.Where(b => !room.MemberIds.Contains(b.Id)).ToList();
+        if (candidates.Count == 0)
+        {
+            var dialogService = App.Services.GetRequiredService<IDialogService>();
+            await dialogService.ShowMessageBoxAsync("CICMessenger",
+                FindTranslation("RoomList_NoMoreContacts", "Tất cả liên hệ đang trực tuyến đều đã ở trong phòng."));
+            return;
+        }
+
+        var picker = new MemberPickerWindow(candidates, FindTranslation("RoomList_AddMembersPrompt", "Chọn thành viên để thêm:"));
+        var selected = await picker.ShowDialog<System.Collections.Generic.List<IBuddy>?>(owner);
+        if (selected == null || selected.Count == 0)
+            return;
+
+        room.MemberIds.AddRange(selected.Select(b => b.Id));
+        var all = Rooms.Load();
+        var stored = all.FirstOrDefault(r => r.Id == room.Id);
+        if (stored != null)
+            stored.MemberIds = room.MemberIds;
+        Rooms.Save(all);
+
+        RoomMembersChanged?.Invoke(this, room);
+    }
+
+    private async void RemoveMembers_Click(object? sender, RoutedEventArgs e)
+    {
+        if (roomsList.SelectedItem is not Room room)
+            return;
+
+        var topLevel = TopLevel.GetTopLevel(this);
+        if (topLevel is not Window owner)
+            return;
+
+        var current = ResolveMembers(room);
+        if (current.Count == 0)
+            return;
+
+        var picker = new MemberPickerWindow(current, FindTranslation("RoomList_RemoveMembersPrompt", "Chọn thành viên để xóa:"));
+        var selected = await picker.ShowDialog<System.Collections.Generic.List<IBuddy>?>(owner);
+        if (selected == null || selected.Count == 0)
+            return;
+
+        var removeIds = selected.Select(b => b.Id).ToHashSet();
+        room.MemberIds.RemoveAll(id => removeIds.Contains(id));
+        var all = Rooms.Load();
+        var stored = all.FirstOrDefault(r => r.Id == room.Id);
+        if (stored != null)
+            stored.MemberIds = room.MemberIds;
+        Rooms.Save(all);
+
+        RoomMembersChanged?.Invoke(this, room);
+    }
+
+    private async void DeleteRoom_Click(object? sender, RoutedEventArgs e)
+    {
+        if (roomsList.SelectedItem is not Room room)
+            return;
+
+        var chatClient = App.Services.GetRequiredService<IChatClient>();
+        if (!IsOwnedByCurrentUser(room, chatClient))
+        {
+            var dialogService = App.Services.GetRequiredService<IDialogService>();
+            await dialogService.ShowMessageBoxAsync(
+                FindTranslation("Error", "Error"),
+                FindTranslation("RoomList_DeleteNotOwner", "Chỉ người tạo phòng mới có thể xóa phòng này."));
+            return;
+        }
 
         var all = Rooms.Load();
         all.RemoveAll(r => r.Id == room.Id);

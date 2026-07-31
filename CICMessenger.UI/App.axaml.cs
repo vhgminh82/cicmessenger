@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
@@ -77,12 +78,18 @@ public partial class App : Application
             return new ChatClient(SettingsService.GetOrCreateClientId(), historyManager, loggerFactory, offlineStore);
         });
 
-        // Plugins
+        // Plugins — the assembly scan is reflection-heavy (LoadFromAssemblyPath + GetTypes per
+        // DLL), so it runs on a background thread instead of blocking startup. Nothing resolves
+        // this synchronously today; consumers should `await` it once they need Extensions/
+        // MessageFilters/MessageParsers.
         var pluginsPath = Path.Combine(appLocation, "Plugins");
+        var pluginLoaderTask = Task.Run(() =>
+        {
 #pragma warning disable IL2026 // RequiresUnreferencedCode - plugin loading is inherently reflection-based
-        var pluginLoader = new PluginLoader(pluginsPath);
+            return new PluginLoader(pluginsPath);
 #pragma warning restore IL2026
-        services.AddSingleton(pluginLoader);
+        });
+        services.AddSingleton(pluginLoaderTask);
 
         // Platform services
         services.AddSingleton<SettingsService>();

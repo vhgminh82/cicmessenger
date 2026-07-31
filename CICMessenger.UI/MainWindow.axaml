@@ -41,6 +41,7 @@
                 <MenuItem Header="{DynamicResource MainWindow_MainMenu_Tools}">
                     <MenuItem Header="{DynamicResource MainWindow_MainMenu_HistoryViewer}"
                               IsEnabled="{Binding IsLoggedIn}" Click="HistoryMenu_Click" />
+                    <MenuItem Header="{DynamicResource MainWindow_MainMenu_LogViewer}" Click="LogViewerMenu_Click" />
                     <MenuItem Header="{DynamicResource MainWindow_MainMenu_Settings}" Click="SettingsMenu_Click" />
                     <Separator />
                     <MenuItem Header="{DynamicResource MainWindow_MainMenu_CheckUpdate}" Click="UpdateMenu_Click" />

@@ -66,6 +66,7 @@ public partial class MainWindow : Window
         contactListControl.RoomSelected += ContactListControl_RoomSelected;
         contactListControl.SendFileRequestedForBuddy += ContactListControl_SendFileRequestedForBuddy;
         contactListControl.RoomRenamed += ContactListControl_RoomRenamed;
+        contactListControl.RoomMembersChanged += ContactListControl_RoomRenamed;
 
         chatPane.AttachmentAdded += ChatPane_AttachmentAdded;
 
@@ -437,6 +438,12 @@ public partial class MainWindow : Window
     private async void HistoryMenu_Click(object? sender, RoutedEventArgs e)
     {
         var viewer = new Windows.HistoryViewer();
+        await viewer.ShowDialog(this);
+    }
+
+    private async void LogViewerMenu_Click(object? sender, RoutedEventArgs e)
+    {
+        var viewer = new Windows.LogViewerWindow();
         await viewer.ShowDialog(this);
     }
 
