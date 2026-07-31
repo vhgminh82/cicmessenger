@@ -116,6 +116,10 @@
                     <TextBlock Text="{DynamicResource SettingsWindow_ConnectionTab_ChatPort}" />
                     <TextBox Text="{Binding ConnectionSettings.ChatPort}" />
 
+                    <TextBlock Text="{DynamicResource SettingsWindow_ConnectionTab_BindToIP}" />
+                    <TextBox Text="{Binding ConnectionSettings.BindToIP}"
+                             Watermark="{DynamicResource SettingsWindow_ConnectionTab_BindToIPWatermark}" />
+
                     <TextBlock Text="{DynamicResource SettingsWindow_ConnectionTab_KeepAliveTime}" />
                     <TextBox Text="{Binding ConnectionSettings.KeepAliveTime}" />
                 </StackPanel>

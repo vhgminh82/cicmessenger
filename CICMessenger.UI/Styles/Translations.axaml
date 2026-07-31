@@ -69,7 +69,6 @@ Bạn có chắc chắn muốn đóng cửa sổ này không?</sys:String>
     <sys:String x:Key="RoomList_DeleteNotOwner">Chỉ người tạo phòng mới có thể xóa phòng này.</sys:String>
     <sys:String x:Key="MemberPicker_Title">Chọn thành viên</sys:String>
     <sys:String x:Key="MemberPicker_SelectPrompt">Chọn thành viên:</sys:String>
-    <sys:String x:Key="Global_OkButton">Đồng ý</sys:String>
     <sys:String x:Key="LogViewer_Title">Nhật ký lỗi phần mềm</sys:String>
     <sys:String x:Key="LogViewer_File">Tệp:</sys:String>
     <sys:String x:Key="LogViewer_ErrorsOnly">Chỉ hiển thị lỗi</sys:String>
@@ -134,7 +133,8 @@ Bạn có chắc chắn muốn đóng cửa sổ này không?</sys:String>
     <sys:String x:Key="SettingsWindow_ConnectionTab_PresencePort">Cổng Presence:</sys:String>
     <sys:String x:Key="SettingsWindow_ConnectionTab_ChatPort">Cổng Chat:</sys:String>
     <sys:String x:Key="SettingsWindow_ConnectionTab_KeepAliveTime">Thời gian Keep Alive:</sys:String>
-    <sys:String x:Key="SettingsWindow_ConnectionTab_BindToIP">Gắn với địa chỉ IP:</sys:String>
+    <sys:String x:Key="SettingsWindow_ConnectionTab_BindToIP">Gắn với địa chỉ IP (để trống = tự chọn):</sys:String>
+    <sys:String x:Key="SettingsWindow_ConnectionTab_BindToIPWatermark">Ví dụ: 192.168.6.100</sys:String>
     <sys:String x:Key="SettingsWindow_ConnectionTab_Reset">Đặt lại</sys:String>
     <sys:String x:Key="SettingsWindow_Error_InvalidPresenceIP">Vui lòng nhập địa chỉ presence hợp lệ.</sys:String>
     <sys:String x:Key="ContactSelectWindow_Heading_InstantMessage">Gửi tin nhắn tức thì</sys:String>

@@ -13,7 +13,7 @@
 
         <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal"
                     HorizontalAlignment="Right" Spacing="8" Margin="0,12,0,0">
-            <Button x:Name="confirmButton" Content="{DynamicResource Global_OkButton}"
+            <Button x:Name="confirmButton" Content="{DynamicResource Global_OKButton}"
                     Click="Confirm_Click" Classes="accent" MinWidth="100" />
             <Button Content="{DynamicResource Global_CancelButton}"
                     Click="Cancel_Click" MinWidth="80" />

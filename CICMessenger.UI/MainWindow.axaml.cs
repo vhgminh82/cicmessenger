@@ -345,7 +345,7 @@ public partial class MainWindow : Window
             var settings = settingsService.Load();
             var connSettings = settings.ConnectionSettings;
 
-            var localIP = GetLocalIPAddress();
+            var localIP = GetLocalIPAddress(connSettings.BindToIP);
             if (localIP == null)
             {
                 await dialogService.ShowMessageBoxAsync("Lỗi",
@@ -390,22 +390,59 @@ public partial class MainWindow : Window
         }
     }
 
-    private static IPAddress? GetLocalIPAddress()
+    private static IPAddress? GetLocalIPAddress(string? bindToIP = null)
     {
         try
         {
-            return NetworkInterface.GetAllNetworkInterfaces()
+            // Link-local 169.254.x.x addresses (VPN/Bluetooth virtual adapters) are unreachable
+            // by peers — advertising one of them silently breaks discovery and chat.
+            var candidates = NetworkInterface.GetAllNetworkInterfaces()
                 .Where(ni => ni.OperationalStatus == OperationalStatus.Up
                           && ni.NetworkInterfaceType != NetworkInterfaceType.Loopback)
-                .SelectMany(ni => ni.GetIPProperties().UnicastAddresses)
-                .Where(addr => addr.Address.AddressFamily == AddressFamily.InterNetwork)
-                .Select(addr => addr.Address)
+                .SelectMany(ni => ni.GetIPProperties().UnicastAddresses
+                    .Select(addr => (Interface: ni, addr.Address)))
+                .Where(c => c.Address.AddressFamily == AddressFamily.InterNetwork
+                         && !IsLinkLocal(c.Address))
+                .ToList();
+
+            if (!string.IsNullOrWhiteSpace(bindToIP)
+                && IPAddress.TryParse(bindToIP.Trim(), out var wanted))
+            {
+                if (candidates.Any(c => c.Address.Equals(wanted)))
+                    return wanted;
+
+                Serilog.Log.Warning(
+                    "Settings BindToIP {BindToIP} does not match any active local address; falling back to auto-select. Available: {Addresses}",
+                    bindToIP, string.Join(", ", candidates.Select(c => c.Address)));
+            }
+
+            // Priority: wired Ethernet first (the company LAN peers talk over), then Wi-Fi as a
+            // fallback if there's no wired connection, then anything else with a real gateway so
+            // virtual adapters can't win on enumeration order alone. "Gắn với địa chỉ IP" in
+            // Settings overrides all of this.
+            var chosen = candidates
+                .OrderByDescending(c => c.Interface.NetworkInterfaceType == NetworkInterfaceType.Ethernet)
+                .ThenByDescending(c => c.Interface.NetworkInterfaceType == NetworkInterfaceType.Wireless80211)
+                .ThenByDescending(c => c.Interface.GetIPProperties().GatewayAddresses
+                    .Any(g => g.Address.AddressFamily == AddressFamily.InterNetwork))
+                .Select(c => c.Address)
                 .FirstOrDefault();
+
+            Serilog.Log.Information("Local IP for chat/presence: {Chosen} (candidates: {Addresses})",
+                chosen, string.Join(", ", candidates.Select(c => $"{c.Address} [{c.Interface.Name}]")));
+
+            return chosen;
         }
         catch
         {
             return null;
         }
+    }
+
+    private static bool IsLinkLocal(IPAddress address)
+    {
+        var bytes = address.GetAddressBytes();
+        return bytes[0] == 169 && bytes[1] == 254;
     }
 
     private void SignOutMenu_Click(object? sender, RoutedEventArgs e)
