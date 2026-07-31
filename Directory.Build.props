@@ -7,8 +7,8 @@
     <Nullable>enable</Nullable>
     <!-- Shown as V{Major}.{Minor}. Each release bumps Minor by one, i.e. +0.01 on the
          displayed number: 0.11 -> 0.12 -> 0.13. Tag releases to match, e.g. v0.12.0. -->
-    <Version>0.17.0</Version>
-    <AssemblyVersion>0.17.0.0</AssemblyVersion>
+    <Version>0.18.0</Version>
+    <AssemblyVersion>0.18.0.0</AssemblyVersion>
     <Company>CIC</Company>
     <Product>CICMessenger</Product>
     <Copyright>Copyright © 2026 CIC</Copyright>
